@@ -7,6 +7,9 @@ const PORT = process.env.PORT || 5000;
 
 // middleware
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+
+// raw body needed for Stripe webhook signature verification
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 // routes (will be added as we build each feature)
