@@ -1,10 +1,10 @@
-const Database = require('better-sqlite3');
+// Node.js v22+ has sqlite built-in — no extra package needed
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '../../masa.db'));
+const db = new DatabaseSync(path.join(__dirname, '../../masa.db'));
 
-// keep foreign keys on
-db.pragma('foreign_keys = ON');
-db.pragma('journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
+db.exec('PRAGMA journal_mode = WAL');
 
 module.exports = db;
