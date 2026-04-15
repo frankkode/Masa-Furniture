@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# build output
+client/dist/
+client/build/
+
+# environment variables
+.env
+server/.env
+client/.env
+
+# database
+server/masa.db
+server/masa.db-shm
+server/masa.db-wal
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+*.log
