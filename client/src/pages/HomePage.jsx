@@ -217,7 +217,7 @@ export default function HomePage() {
   const canNext = carouselStart + VISIBLE < products.length;
 
   return (
-    <div className="overflow-x-hidden">
+    <div>
 
       {/* ═══════════════════════════════════════════════════════
           1. HERO — full-viewport, transparent navbar floats over it.
@@ -226,7 +226,7 @@ export default function HomePage() {
              Bottom gradient fades to white to meet the next section.
       ═══════════════════════════════════════════════════════ */}
       <section
-        className="relative -mt-16 flex flex-col justify-center overflow-hidden"
+        className="relative -mt-16 flex flex-col justify-start overflow-hidden"
         style={{ background: '#fff', minHeight: '100vh' }}
       >
         {/* ── full-bleed background image ── */}
@@ -243,10 +243,10 @@ export default function HomePage() {
             }}
           />
 
-          {/* top dark gradient — navbar + headline legibility */}
+          {/* top dark gradient — covers navbar + full text block */}
           <div className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(180deg, rgba(15,15,15,0.72) 0%, rgba(15,15,15,0.30) 38%, transparent 65%)',
+              background: 'linear-gradient(180deg, rgba(10,10,10,0.78) 0%, rgba(10,10,10,0.55) 30%, rgba(10,10,10,0.20) 55%, transparent 72%)',
             }}
           />
 
@@ -259,9 +259,9 @@ export default function HomePage() {
           />
         </div>
 
-        {/* ── centered content ── */}
+        {/* ── hero content — sits in the dark upper zone of the image ── */}
         <div className="relative z-10 w-full flex flex-col items-center text-center px-4"
-          style={{ paddingTop: '120px', paddingBottom: '140px' }}>
+          style={{ paddingTop: '96px', paddingBottom: '60px' }}>
 
           <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-5 max-w-4xl drop-shadow-lg">
             Make Your Interior More<br />

@@ -70,7 +70,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-500
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500
         ${transparent
           ? 'bg-transparent border-transparent'
           : 'bg-white shadow-md border-transparent'
