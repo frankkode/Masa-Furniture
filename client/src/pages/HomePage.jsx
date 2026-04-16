@@ -284,40 +284,13 @@ export default function HomePage() {
           </form>
         </div>
 
-        {/* ── floating color-picker widget (bottom-right, Figma design element) ── */}
+        {/* ── floating color-picker widget (bottom-right) — exact Figma export ── */}
         <div className="absolute bottom-10 right-6 md:right-16 z-20 hidden md:block">
-          <div className="bg-white rounded-2xl shadow-2xl p-4 w-44"
-            style={{ backdropFilter: 'blur(8px)' }}>
-
-            {/* swatch label */}
-            <p className="text-masa-dark text-xs font-semibold mb-3">Choose Color</p>
-
-            {/* color circles */}
-            <div className="flex items-center gap-2.5 mb-4">
-              {/* orange — active / selected */}
-              <button className="relative w-7 h-7 rounded-full bg-masa-accent ring-2 ring-masa-accent ring-offset-2
-                                 flex items-center justify-center shadow-md">
-                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
-                </svg>
-              </button>
-              {/* teal */}
-              <button className="w-7 h-7 rounded-full shadow-md hover:ring-2 hover:ring-offset-1 hover:ring-teal-500 transition-all"
-                style={{ background: '#2d7d7f' }} />
-              {/* warm gray */}
-              <button className="w-7 h-7 rounded-full shadow-md hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 transition-all"
-                style={{ background: '#8a8070' }} />
-            </div>
-
-            {/* material fabric swatch */}
-            <div className="rounded-xl overflow-hidden h-14 w-full"
-              style={{
-                background: 'repeating-linear-gradient(45deg, #c87941 0px, #c87941 3px, #b06030 3px, #b06030 6px)',
-                opacity: 0.85,
-              }}
-            />
-            <p className="text-masa-gray text-xs mt-2 text-center">Velvet Fabric</p>
-          </div>
+          <img
+            src="/color-picker.png"
+            alt="Color picker"
+            className="w-36 drop-shadow-2xl"
+          />
         </div>
       </section>
 
@@ -460,10 +433,10 @@ export default function HomePage() {
           <div className="relative -ml-4 md:-ml-[calc((100vw-100%)/2+1.5rem)] rounded-r-3xl overflow-hidden shadow-xl"
             style={{ aspectRatio: '4/3' }}>
             <img
-              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&q=80"
-              alt="Modern living room with teal sofa and tropical plant"
+              src="/exp-room.jpg"
+              alt="Dark living room with teal sofa and tropical plant"
               className="w-full h-full object-cover"
-              onError={e => { e.target.src = 'https://picsum.photos/seed/exp1/900/675'; }}
+              onError={e => { e.target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&q=80'; }}
             />
           </div>
 
@@ -508,30 +481,30 @@ export default function HomePage() {
             {/* top-left: white sofa + teal paneled wall */}
             <div className="rounded-2xl overflow-hidden shadow-md">
               <img
-                src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=400&q=80"
+                src="/mat-sofa.jpg"
                 alt="White sofa with teal paneled wall"
                 className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat1/400/200'; }}
+                onError={e => { e.target.src = 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=400&q=80'; }}
               />
             </div>
 
             {/* bottom-left: modern chair showroom — gray + teal accent */}
             <div className="rounded-2xl overflow-hidden shadow-md">
               <img
-                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=80"
+                src="/mat-chairs.jpg"
                 alt="Modern chair showroom with gray and teal accents"
                 className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat2/400/200'; }}
+                onError={e => { e.target.src = 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=80'; }}
               />
             </div>
 
             {/* right col — tall, spans 2 rows: amber/ochre dining chairs + warm curtains */}
             <div className="row-span-2 col-start-2 row-start-1 rounded-2xl overflow-hidden shadow-md">
               <img
-                src="https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&q=80"
+                src="/mat-dining.jpg"
                 alt="Dining room with amber ochre chairs and warm curtains"
                 className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat3/400/420'; }}
+                onError={e => { e.target.src = 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&q=80'; }}
               />
             </div>
           </div>
