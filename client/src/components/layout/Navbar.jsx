@@ -40,9 +40,10 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // shadow / transparency on scroll
+  // switch from transparent → solid once user scrolls past the hero
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll(); // check immediately on mount
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -69,10 +70,10 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300
+      className={`sticky top-0 z-50 transition-all duration-500
         ${transparent
           ? 'bg-transparent border-transparent'
-          : `bg-white ${scrolled ? 'shadow-md' : 'border-b border-masa-border'}`
+          : 'bg-white shadow-md border-transparent'
         }`}
     >
       <div className="container-main h-16 flex items-center justify-between">

@@ -220,15 +220,16 @@ export default function HomePage() {
     <div className="overflow-x-hidden">
 
       {/* ═══════════════════════════════════════════════════════
-          1. HERO — full-viewport, navbar floats over it
-             Pull section up by -mt-16 so it starts at very top
-             (behind the sticky navbar)
+          1. HERO — full-viewport, transparent navbar floats over it.
+             -mt-16 pulls section behind the 64px sticky navbar so the
+             image starts at y=0 (very top of the screen).
+             Bottom gradient fades to white to meet the next section.
       ═══════════════════════════════════════════════════════ */}
       <section
         className="relative -mt-16 flex flex-col justify-center overflow-hidden"
-        style={{ background: '#1e1e1e', minHeight: '100vh' }}
+        style={{ background: '#fff', minHeight: '100vh' }}
       >
-        {/* hero image — orange sofa / dark wood-panel wall */}
+        {/* ── full-bleed background image ── */}
         <div className="absolute inset-0">
           <img
             src="/home.webp"
@@ -241,28 +242,37 @@ export default function HomePage() {
               e.target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1800&q=90';
             }}
           />
-          {/* gradient — darkens top so navbar + text reads clearly */}
-          <div className="absolute inset-0"
+
+          {/* top dark gradient — navbar + headline legibility */}
+          <div className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'linear-gradient(180deg, rgba(20,20,20,0.70) 0%, rgba(20,20,20,0.40) 40%, rgba(20,20,20,0.15) 70%, rgba(20,20,20,0.0) 100%)',
+              background: 'linear-gradient(180deg, rgba(15,15,15,0.72) 0%, rgba(15,15,15,0.30) 38%, transparent 65%)',
+            }}
+          />
+
+          {/* bottom fade-to-white — blends into the white section below */}
+          <div className="absolute inset-x-0 bottom-0 pointer-events-none"
+            style={{
+              height: '220px',
+              background: 'linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0.90) 75%, #ffffff 100%)',
             }}
           />
         </div>
 
-        {/* centered content — extra top padding to clear the 64px navbar */}
+        {/* ── centered content ── */}
         <div className="relative z-10 w-full flex flex-col items-center text-center px-4"
-          style={{ paddingTop: '120px', paddingBottom: '80px' }}>
+          style={{ paddingTop: '120px', paddingBottom: '140px' }}>
 
-          <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-5 max-w-4xl drop-shadow-md">
+          <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-5 max-w-4xl drop-shadow-lg">
             Make Your Interior More<br />
             Minimalistic &amp; Modern
           </h1>
-          <p className="text-white/80 text-base md:text-lg leading-relaxed mb-10 max-w-md drop-shadow">
+          <p className="text-white/85 text-base md:text-lg leading-relaxed mb-10 max-w-md drop-shadow">
             Turn your room with Masa into a lot more minimalist<br className="hidden md:block" />
             and modern with ease and speed
           </p>
 
-          {/* search bar — white pill + orange circle button */}
+          {/* search bar — white pill + orange button */}
           <form onSubmit={handleSearch}
             className="flex items-center bg-white rounded-full shadow-2xl pl-6 pr-1.5 py-1.5 w-full max-w-sm">
             <input
@@ -284,8 +294,8 @@ export default function HomePage() {
           </form>
         </div>
 
-        {/* ── floating color-picker widget (bottom-right) — exact Figma export ── */}
-        <div className="absolute bottom-10 right-6 md:right-16 z-20 hidden md:block">
+        {/* ── floating color-picker widget — Figma export, bottom-right ── */}
+        <div className="absolute bottom-16 right-6 md:right-16 z-20 hidden md:block">
           <img
             src="/color-picker.png"
             alt="Color picker"
