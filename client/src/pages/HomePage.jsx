@@ -225,12 +225,12 @@ export default function HomePage() {
       <section className="relative min-h-[88vh] flex flex-col justify-center overflow-hidden"
         style={{ background: '#1a1a2e' }}>
 
-        {/* dark vertical panel texture overlay */}
+        {/* dark vertical panel texture overlay — mimics wall panel lines */}
         <div className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `repeating-linear-gradient(90deg,
-              rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px,
-              transparent 1px, transparent 60px)`,
+              rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px,
+              transparent 1px, transparent 56px)`,
           }}
         />
 
@@ -240,7 +240,7 @@ export default function HomePage() {
             src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1600&q=80"
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover opacity-50"
             style={{ objectPosition: 'center 40%' }}
             onError={() => {}}
           />
@@ -250,11 +250,11 @@ export default function HomePage() {
           />
         </div>
 
-        {/* floating decorative circles (top left — like Figma) */}
-        <div className="absolute top-20 left-8 flex gap-1.5 z-10">
-          <span className="w-3 h-3 rounded-full bg-red-400 opacity-80" />
-          <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-80" />
-          <span className="w-3 h-3 rounded-full bg-green-400 opacity-80" />
+        {/* floating decorative circles (top left — matches Figma: green / amber / blue) */}
+        <div className="absolute top-20 left-8 flex gap-2 z-10">
+          <span className="w-3.5 h-3.5 rounded-full" style={{ background: '#4ecdc4' }} />
+          <span className="w-3.5 h-3.5 rounded-full" style={{ background: '#e07b39' }} />
+          <span className="w-3.5 h-3.5 rounded-full" style={{ background: '#6c9fd4' }} />
         </div>
 
         {/* content */}
@@ -268,20 +268,20 @@ export default function HomePage() {
               Turn your room with Masa into a lot more minimalist and modern with ease and speed.
             </p>
 
-            {/* search bar */}
+            {/* search bar — white pill + orange circle button (Figma) */}
             <form onSubmit={handleSearch}
-              className="flex max-w-md rounded-full overflow-hidden shadow-xl bg-white">
+              className="flex items-center max-w-sm bg-white rounded-full shadow-xl pl-5 pr-1.5 py-1.5">
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search furniture"
-                className="flex-1 px-5 py-3.5 text-sm text-masa-dark placeholder-gray-400
-                           focus:outline-none bg-transparent"
+                className="flex-1 text-sm text-masa-dark placeholder-gray-400
+                           focus:outline-none bg-transparent min-w-0"
               />
               <button type="submit"
-                className="bg-masa-accent text-white px-6 py-3.5 text-sm font-medium
-                           hover:bg-orange-600 transition-colors flex items-center gap-1.5">
+                className="shrink-0 w-9 h-9 rounded-full bg-masa-accent text-white
+                           hover:bg-orange-600 transition-colors flex items-center justify-center">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -432,11 +432,11 @@ export default function HomePage() {
       <section className="py-20 bg-white">
         <div className="container-main grid md:grid-cols-2 gap-12 items-center">
 
-          {/* left: room photo */}
+          {/* left: dark atmospheric room photo — matches Figma */}
           <div className="rounded-2xl overflow-hidden shadow-lg aspect-[4/3]">
             <img
-              src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80"
-              alt="Elegant living room with teal sofa"
+              src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=80"
+              alt="Dark modern living room"
               className="w-full h-full object-cover"
               onError={e => { e.target.src = 'https://picsum.photos/seed/exp1/800/600'; }}
             />
@@ -477,33 +477,33 @@ export default function HomePage() {
             <MoreInfo to="/shop" />
           </div>
 
-          {/* right: 3-photo collage */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* tall photo left */}
-            <div className="row-span-2 rounded-2xl overflow-hidden shadow">
+          {/* right: 3-photo collage — 2 stacked left, 1 tall right (matches Figma) */}
+          <div className="grid grid-cols-2 grid-rows-2 gap-3" style={{ height: '380px' }}>
+            {/* top-left small */}
+            <div className="rounded-2xl overflow-hidden shadow">
+              <img
+                src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&q=80"
+                alt="Sofa detail"
+                className="w-full h-full object-cover"
+                onError={e => { e.target.src = 'https://picsum.photos/seed/mat1/400/200'; }}
+              />
+            </div>
+            {/* bottom-left small */}
+            <div className="rounded-2xl overflow-hidden shadow">
               <img
                 src="https://images.unsplash.com/photo-1549497538-303791108f95?w=400&q=80"
-                alt="Teal sofa material"
+                alt="Teal sofa"
                 className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat1/400/600'; }}
+                onError={e => { e.target.src = 'https://picsum.photos/seed/mat2/400/200'; }}
               />
             </div>
-            {/* top right */}
-            <div className="rounded-2xl overflow-hidden shadow aspect-video">
+            {/* right column — tall, spans 2 rows */}
+            <div className="row-span-2 col-start-2 row-start-1 rounded-2xl overflow-hidden shadow">
               <img
-                src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400&q=80"
-                alt="Oak material"
+                src="https://images.unsplash.com/photo-1617806118233-18e1de247200?w=400&q=80"
+                alt="Dining room with warm chairs"
                 className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat2/400/300'; }}
-              />
-            </div>
-            {/* bottom right */}
-            <div className="rounded-2xl overflow-hidden shadow aspect-video">
-              <img
-                src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&q=80"
-                alt="Dining chairs"
-                className="w-full h-full object-cover"
-                onError={e => { e.target.src = 'https://picsum.photos/seed/mat3/400/300'; }}
+                onError={e => { e.target.src = 'https://picsum.photos/seed/mat3/400/400'; }}
               />
             </div>
           </div>
@@ -513,7 +513,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════
           6. TESTIMONIALS
       ═══════════════════════════════════════ */}
-      <section className="py-20 bg-white border-t border-masa-border">
+      <section className="py-20 bg-masa-light">
         <div className="container-main">
 
           {/* heading */}
