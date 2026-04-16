@@ -228,24 +228,23 @@ export default function HomePage() {
         className="relative -mt-16 flex flex-col justify-center overflow-hidden"
         style={{ background: '#1e1e1e', minHeight: '100vh' }}
       >
-        {/* hero image — the orange sofa / dark panel wall photo */}
+        {/* hero image — orange sofa / dark wood-panel wall */}
         <div className="absolute inset-0">
           <img
-            src="/hero-sofa.jpg"
+            src="/home.webp"
             alt=""
             aria-hidden="true"
             className="w-full h-full object-cover"
             style={{ objectPosition: 'center center' }}
             onError={e => {
-              /* fallback to similar Unsplash image if local file not found */
               e.target.onerror = null;
               e.target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1800&q=90';
             }}
           />
-          {/* top gradient — darkens the top 35% so navbar + text reads clearly */}
+          {/* gradient — darkens top so navbar + text reads clearly */}
           <div className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(20,20,20,0.65) 0%, rgba(20,20,20,0.35) 35%, rgba(20,20,20,0.1) 65%, rgba(20,20,20,0.0) 100%)',
+              background: 'linear-gradient(180deg, rgba(20,20,20,0.70) 0%, rgba(20,20,20,0.40) 40%, rgba(20,20,20,0.15) 70%, rgba(20,20,20,0.0) 100%)',
             }}
           />
         </div>
@@ -283,6 +282,42 @@ export default function HomePage() {
               </svg>
             </button>
           </form>
+        </div>
+
+        {/* ── floating color-picker widget (bottom-right, Figma design element) ── */}
+        <div className="absolute bottom-10 right-6 md:right-16 z-20 hidden md:block">
+          <div className="bg-white rounded-2xl shadow-2xl p-4 w-44"
+            style={{ backdropFilter: 'blur(8px)' }}>
+
+            {/* swatch label */}
+            <p className="text-masa-dark text-xs font-semibold mb-3">Choose Color</p>
+
+            {/* color circles */}
+            <div className="flex items-center gap-2.5 mb-4">
+              {/* orange — active / selected */}
+              <button className="relative w-7 h-7 rounded-full bg-masa-accent ring-2 ring-masa-accent ring-offset-2
+                                 flex items-center justify-center shadow-md">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
+                </svg>
+              </button>
+              {/* teal */}
+              <button className="w-7 h-7 rounded-full shadow-md hover:ring-2 hover:ring-offset-1 hover:ring-teal-500 transition-all"
+                style={{ background: '#2d7d7f' }} />
+              {/* warm gray */}
+              <button className="w-7 h-7 rounded-full shadow-md hover:ring-2 hover:ring-offset-1 hover:ring-gray-400 transition-all"
+                style={{ background: '#8a8070' }} />
+            </div>
+
+            {/* material fabric swatch */}
+            <div className="rounded-xl overflow-hidden h-14 w-full"
+              style={{
+                background: 'repeating-linear-gradient(45deg, #c87941 0px, #c87941 3px, #b06030 3px, #b06030 6px)',
+                opacity: 0.85,
+              }}
+            />
+            <p className="text-masa-gray text-xs mt-2 text-center">Velvet Fabric</p>
+          </div>
         </div>
       </section>
 
@@ -425,8 +460,8 @@ export default function HomePage() {
           <div className="relative -ml-4 md:-ml-[calc((100vw-100%)/2+1.5rem)] rounded-r-3xl overflow-hidden shadow-xl"
             style={{ aspectRatio: '4/3' }}>
             <img
-              src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=900&q=80"
-              alt="Dark modern living room with sofa and plant"
+              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=900&q=80"
+              alt="Modern living room with teal sofa and tropical plant"
               className="w-full h-full object-cover"
               onError={e => { e.target.src = 'https://picsum.photos/seed/exp1/900/675'; }}
             />
@@ -470,31 +505,31 @@ export default function HomePage() {
           {/* right: 3-photo collage — 2 stacked left col, 1 tall right col */}
           <div className="grid grid-cols-2 grid-rows-2 gap-4" style={{ height: '420px' }}>
 
-            {/* top-left: smaller chair/office photo */}
+            {/* top-left: white sofa + teal paneled wall */}
             <div className="rounded-2xl overflow-hidden shadow-md">
               <img
-                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=80"
-                alt="Modern chairs in bright office"
+                src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=400&q=80"
+                alt="White sofa with teal paneled wall"
                 className="w-full h-full object-cover"
                 onError={e => { e.target.src = 'https://picsum.photos/seed/mat1/400/200'; }}
               />
             </div>
 
-            {/* bottom-left: teal sofa green wall */}
+            {/* bottom-left: modern chair showroom — gray + teal accent */}
             <div className="rounded-2xl overflow-hidden shadow-md">
               <img
-                src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=400&q=80"
-                alt="Teal sofa with green wall"
+                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400&q=80"
+                alt="Modern chair showroom with gray and teal accents"
                 className="w-full h-full object-cover"
                 onError={e => { e.target.src = 'https://picsum.photos/seed/mat2/400/200'; }}
               />
             </div>
 
-            {/* right col — tall, spans 2 rows: dining with warm amber chairs */}
+            {/* right col — tall, spans 2 rows: amber/ochre dining chairs + warm curtains */}
             <div className="row-span-2 col-start-2 row-start-1 rounded-2xl overflow-hidden shadow-md">
               <img
                 src="https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&q=80"
-                alt="Dining room with warm amber chairs"
+                alt="Dining room with amber ochre chairs and warm curtains"
                 className="w-full h-full object-cover"
                 onError={e => { e.target.src = 'https://picsum.photos/seed/mat3/400/420'; }}
               />
