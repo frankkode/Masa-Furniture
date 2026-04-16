@@ -563,9 +563,148 @@ function ProfileTab({ user }) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   Admin Tab — visible only to is_staff users
+════════════════════════════════════════════════════════════════ */
+const ORDER_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
+
+function AdminTab() {
+  const [stats,      setStats]      = useState(null);
+  const [orders,     setOrders]     = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [filter,     setFilter]     = useState('');
+  const [updating,   setUpdating]   = useState(null); // order id being updated
+
+  const fetchData = () => {
+    setLoading(true);
+    const url = filter ? `/admin/orders?status=${filter}&limit=50` : '/admin/orders?limit=50';
+    Promise.all([
+      api.get('/admin/stats'),
+      api.get(url),
+    ])
+      .then(([sRes, oRes]) => {
+        setStats(sRes.data);
+        setOrders(oRes.data.orders || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchData(); }, [filter]);
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    setUpdating(orderId);
+    try {
+      await api.patch(`/admin/orders/${orderId}/status`, { status: newStatus });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    } catch {
+      alert('Failed to update status');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-masa-dark">Admin Panel</h2>
+        <span className="text-xs bg-masa-accent text-white px-3 py-1 rounded-full font-semibold">Staff</span>
+      </div>
+
+      {/* stat cards */}
+      {stats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Orders',   value: stats.totalOrders,            color: 'bg-blue-50   text-blue-700'   },
+            { label: 'Pending',        value: stats.pendingOrders,           color: 'bg-yellow-50 text-yellow-700' },
+            { label: 'Revenue',        value: `$${Number(stats.totalRevenue).toFixed(0)}`, color: 'bg-green-50  text-green-700'  },
+            { label: 'Products',       value: stats.totalProducts,           color: 'bg-purple-50 text-purple-700' },
+          ].map(s => (
+            <div key={s.label} className={`rounded-xl p-5 ${s.color.split(' ')[0]}`}>
+              <p className={`text-2xl font-bold ${s.color.split(' ')[1]}`}>{s.value}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* order filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm font-semibold text-masa-dark mr-1">Filter:</span>
+        {['', ...ORDER_STATUSES].map(s => (
+          <button key={s}
+            onClick={() => setFilter(s)}
+            className={`px-3 py-1 text-xs rounded-full font-medium transition-colors capitalize
+              ${filter === s ? 'bg-masa-accent text-white' : 'bg-masa-light text-masa-gray hover:text-masa-dark'}`}>
+            {s || 'All'}
+          </button>
+        ))}
+      </div>
+
+      {/* orders table */}
+      {loading ? (
+        <div className="space-y-2">{[0,1,2,3,4].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}</div>
+      ) : orders.length === 0 ? (
+        <div className="text-center py-14 text-masa-gray text-sm border border-dashed border-masa-border rounded-xl">
+          No orders found{filter ? ` with status "${filter}"` : ''}.
+        </div>
+      ) : (
+        <div className="border border-masa-border rounded-xl overflow-hidden">
+          {/* header */}
+          <div className="hidden md:grid grid-cols-[80px_1fr_120px_100px_140px] gap-4 bg-masa-light px-5 py-3 text-xs font-semibold text-masa-gray uppercase tracking-wider">
+            <span>Order</span><span>Customer</span><span>Date</span><span>Total</span><span>Status</span>
+          </div>
+
+          {orders.map((order, idx) => (
+            <div key={order.id}
+              className={`grid grid-cols-2 md:grid-cols-[80px_1fr_120px_100px_140px] gap-4 items-center
+                          px-5 py-3.5 text-sm border-t border-masa-border first:border-t-0
+                          ${idx % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+              {/* id */}
+              <span className="font-bold text-masa-dark">
+                #{String(order.id).padStart(5, '0')}
+              </span>
+              {/* customer */}
+              <div className="min-w-0">
+                <p className="font-medium text-masa-dark truncate">{order.username}</p>
+                <p className="text-xs text-masa-gray truncate">{order.email}</p>
+              </div>
+              {/* date */}
+              <span className="text-masa-gray text-xs hidden md:block">
+                {formatDate(order.created_at)}
+              </span>
+              {/* total */}
+              <span className="font-semibold text-masa-accent">
+                ${Number(order.total_price).toFixed(2)}
+              </span>
+              {/* status dropdown */}
+              <div className="relative col-span-2 md:col-span-1">
+                <select
+                  value={order.status}
+                  disabled={updating === order.id}
+                  onChange={e => handleStatusChange(order.id, e.target.value)}
+                  className={`w-full text-xs font-semibold rounded-full px-3 py-1.5 border
+                              appearance-none cursor-pointer transition-colors
+                              focus:outline-none focus:ring-2 focus:ring-masa-accent/30
+                              ${updating === order.id ? 'opacity-50' : ''}
+                              ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}
+                >
+                  {ORDER_STATUSES.map(s => (
+                    <option key={s} value={s} className="bg-white text-masa-dark capitalize">{s.replace('_',' ')}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
    DashboardPage — layout + sub-routing
 ════════════════════════════════════════════════════════════════ */
-const NAV_LINKS = [
+const BASE_NAV = [
   { to: '/dashboard',          label: 'Overview',  end: true,
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
   { to: '/dashboard/orders',   label: 'Orders',
@@ -576,9 +715,14 @@ const NAV_LINKS = [
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
 ];
 
+const ADMIN_LINK = {
+  to: '/dashboard/admin', label: 'Admin',
+  icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+};
+
 export default function DashboardPage() {
-  const { user }        = useAuth();
-  const [mobileNav, setMobileNav] = useState(false);
+  const { user }  = useAuth();
+  const NAV_LINKS = user?.is_staff ? [...BASE_NAV, ADMIN_LINK] : BASE_NAV;
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors
@@ -639,6 +783,9 @@ export default function DashboardPage() {
               <Route path="orders"   element={<OrdersTab />} />
               <Route path="wishlist" element={<WishlistTab />} />
               <Route path="profile"  element={<ProfileTab user={user} />} />
+              {user?.is_staff ? (
+                <Route path="admin" element={<AdminTab />} />
+              ) : null}
             </Routes>
           </main>
 

@@ -20,6 +20,7 @@ app.use('/api/cart',     require('./routes/cart'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/orders',   require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/admin',   require('./routes/admin'));
 
 // health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

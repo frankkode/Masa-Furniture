@@ -187,5 +187,5 @@ Use card number `4242 4242 4242 4242` with any future expiry and any 3-digit CVC
 
 ## License
 
-Built for academic submission — IU Internationale Hochschule, 2025.  
+Built for academic submission — IU Internationale Hochschule, 2026.  
 © Frank Masabo

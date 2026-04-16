@@ -126,10 +126,10 @@ function MoreInfo({ to = '/shop' }) {
 
 /* ── product category tabs ───────────────────────────────────── */
 const TABS = [
-  { label: 'Chair', value: 'chairs' },
-  { label: 'Beds',  value: 'beds'   },
-  { label: 'Sofa',  value: 'sofas'  },
-  { label: 'Lamp',  value: 'lamp'   },
+  { label: 'Chair', value: 'chair' },   // matches category slug in DB
+  { label: 'Beds',  value: 'beds'  },
+  { label: 'Sofa',  value: 'sofas' },
+  { label: 'Lamp',  value: 'lamp'  },
 ];
 
 /* ── testimonials data ───────────────────────────────────────── */
@@ -169,7 +169,7 @@ const TESTIMONIALS = [
 export default function HomePage() {
   const navigate = useNavigate();
   const [search,       setSearch]      = useState('');
-  const [activeTab,    setActiveTab]   = useState('chairs');
+  const [activeTab,    setActiveTab]   = useState('chair');
   const [products,     setProducts]    = useState([]);
   const [loadingProd,  setLoadingProd] = useState(true);
   const [testimIdx,    setTestimIdx]   = useState(0);
