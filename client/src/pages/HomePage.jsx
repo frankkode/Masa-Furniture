@@ -219,46 +219,46 @@ export default function HomePage() {
   return (
     <div className="overflow-x-hidden">
 
-      {/* ═══════════════════════════════════════════════
-          1. HERO — dark charcoal, centered, full-bleed
-      ═══════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden"
-        style={{ background: '#1e1e1e' }}>
-
-        {/* vertical panel lines — prominent dark wood slat look */}
-        <div className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `repeating-linear-gradient(90deg,
-              rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 2px,
-              transparent 2px, transparent 52px)`,
-          }}
-        />
-
-        {/* hero image — large room scene, high opacity */}
+      {/* ═══════════════════════════════════════════════════════
+          1. HERO — full-viewport, navbar floats over it
+             Pull section up by -mt-16 so it starts at very top
+             (behind the sticky navbar)
+      ═══════════════════════════════════════════════════════ */}
+      <section
+        className="relative -mt-16 flex flex-col justify-center overflow-hidden"
+        style={{ background: '#1e1e1e', minHeight: '100vh' }}
+      >
+        {/* hero image — the orange sofa / dark panel wall photo */}
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1800&q=85"
+            src="/hero-sofa.jpg"
             alt=""
             aria-hidden="true"
             className="w-full h-full object-cover"
-            style={{ objectPosition: 'center center', opacity: 0.75 }}
-            onError={() => {}}
+            style={{ objectPosition: 'center center' }}
+            onError={e => {
+              /* fallback to similar Unsplash image if local file not found */
+              e.target.onerror = null;
+              e.target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1800&q=90';
+            }}
           />
-          {/* subtle top vignette so text stays readable */}
+          {/* top gradient — darkens the top 35% so navbar + text reads clearly */}
           <div className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(30,30,30,0.6) 0%, rgba(30,30,30,0.15) 40%, rgba(30,30,30,0.3) 100%)',
+              background: 'linear-gradient(180deg, rgba(20,20,20,0.65) 0%, rgba(20,20,20,0.35) 35%, rgba(20,20,20,0.1) 65%, rgba(20,20,20,0.0) 100%)',
             }}
           />
         </div>
 
-        {/* centered content */}
-        <div className="relative z-10 w-full flex flex-col items-center text-center px-4 py-32">
-          <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-5 max-w-4xl">
+        {/* centered content — extra top padding to clear the 64px navbar */}
+        <div className="relative z-10 w-full flex flex-col items-center text-center px-4"
+          style={{ paddingTop: '120px', paddingBottom: '80px' }}>
+
+          <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-5 max-w-4xl drop-shadow-md">
             Make Your Interior More<br />
             Minimalistic &amp; Modern
           </h1>
-          <p className="text-white/70 text-base md:text-lg leading-relaxed mb-10 max-w-lg">
+          <p className="text-white/80 text-base md:text-lg leading-relaxed mb-10 max-w-md drop-shadow">
             Turn your room with Masa into a lot more minimalist<br className="hidden md:block" />
             and modern with ease and speed
           </p>
