@@ -65,12 +65,15 @@ export default function CartDrawer() {
               {items.map(item => (
                 <li key={item.id} className="flex gap-4">
                   {/* Product image */}
-                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-masa-light shrink-0">
-                    {item.image_url
-                      ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center text-masa-gray text-xs">No img</div>
-                    }
-                  </div>
+                  <Link to={`/product/${item.product_id}`} onClick={() => setIsOpen(false)}
+                        className="w-20 h-20 rounded-lg overflow-hidden bg-masa-light shrink-0 block">
+                    <img
+                      src={item.image_url || `https://picsum.photos/seed/${item.product_id}/160/160`}
+                      alt={item.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      onError={e => { e.target.src = `https://picsum.photos/seed/${item.product_id + 5}/160/160`; }}
+                    />
+                  </Link>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
