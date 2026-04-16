@@ -3,6 +3,7 @@ import { AuthProvider }    from './context/AuthContext';
 import { CartProvider }    from './context/CartContext';
 import Navbar              from './components/layout/Navbar';
 import Footer              from './components/layout/Footer';
+import CartDrawer          from './components/layout/CartDrawer';
 import HomePage            from './pages/HomePage';
 import ShopPage            from './pages/ShopPage';
 import ProductPage         from './pages/ProductPage';
@@ -21,6 +22,7 @@ export default function App() {
       <CartProvider>
         <div className="min-h-screen flex flex-col">
           <Navbar />
+          <CartDrawer />
           <main className="flex-1">
             <Routes>
               <Route path="/"              element={<HomePage />} />

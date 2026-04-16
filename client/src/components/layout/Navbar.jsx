@@ -1,4 +1,211 @@
-// placeholder — full Navbar built in Session 7
+import { useState, useRef, useEffect } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
+
+const furnitureLinks = [
+  { label: 'Chairs',  to: '/shop/chairs' },
+  { label: 'Beds',    to: '/shop/beds' },
+  { label: 'Sofas',   to: '/shop/sofas' },
+  { label: 'Tables',  to: '/shop/tables' },
+  { label: 'Shelves', to: '/shop/shelf' },
+  { label: 'Lamps',   to: '/shop/lamp' },
+];
+
 export default function Navbar() {
-  return <header className="h-16 bg-white border-b border-masa-border flex items-center px-8"><span className="font-bold text-xl">Masa</span></header>;
+  const { user, logout }   = useAuth();
+  const { itemCount, isOpen, setIsOpen } = useCart();
+  const navigate           = useNavigate();
+
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const [furnitureOpen, setFurnitureOpen] = useState(false);
+  const [profileOpen,   setProfileOpen]   = useState(false);
+  const [scrolled,      setScrolled]      = useState(false);
+
+  const furnitureRef = useRef(null);
+  const profileRef   = useRef(null);
+
+  // close dropdowns when clicking outside
+  useEffect(() => {
+    function handleClick(e) {
+      if (furnitureRef.current && !furnitureRef.current.contains(e.target)) {
+        setFurnitureOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // shadow on scroll
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setProfileOpen(false);
+    navigate('/');
+  };
+
+  const navLinkClass = ({ isActive }) =>
+    `text-sm font-medium transition-colors ${isActive ? 'text-masa-accent' : 'text-masa-dark hover:text-masa-accent'}`;
+
+  return (
+    <header className={`sticky top-0 z-50 bg-white transition-shadow ${scrolled ? 'shadow-md' : 'border-b border-masa-border'}`}>
+      <div className="container-main h-16 flex items-center justify-between">
+
+        {/* ── Logo ── */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <span className="text-2xl font-bold tracking-tight text-masa-dark">
+            Masa
+          </span>
+        </Link>
+
+        {/* ── Desktop nav ── */}
+        <nav className="hidden md:flex items-center gap-8">
+          {/* Furniture dropdown */}
+          <div ref={furnitureRef} className="relative">
+            <button
+              onClick={() => setFurnitureOpen(v => !v)}
+              className="flex items-center gap-1 text-sm font-medium text-masa-dark hover:text-masa-accent transition-colors"
+            >
+              Furniture
+              <svg className={`w-4 h-4 transition-transform ${furnitureOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {furnitureOpen && (
+              <div className="absolute top-full left-0 mt-2 w-44 bg-white border border-masa-border rounded-lg shadow-lg py-2 z-50">
+                {furnitureLinks.map(link => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setFurnitureOpen(false)}
+                    className="block px-4 py-2 text-sm text-masa-dark hover:bg-masa-light hover:text-masa-accent transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <NavLink to="/shop"     className={navLinkClass}>Shop</NavLink>
+          <NavLink to="/about"    className={navLinkClass}>About Us</NavLink>
+          <NavLink to="/contact"  className={navLinkClass}>Contact</NavLink>
+        </nav>
+
+        {/* ── Right actions ── */}
+        <div className="flex items-center gap-3">
+
+          {/* Cart icon */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="relative p-2 text-masa-dark hover:text-masa-accent transition-colors"
+            aria-label="Open cart"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.6 8H19M7 13L5.4 5M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
+            </svg>
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-masa-accent text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center leading-none">
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
+          </button>
+
+          {/* Auth: profile dropdown or login button */}
+          {user ? (
+            <div ref={profileRef} className="relative">
+              <button
+                onClick={() => setProfileOpen(v => !v)}
+                className="hidden md:flex items-center gap-2 text-sm font-medium text-masa-dark hover:text-masa-accent transition-colors"
+              >
+                <span className="w-8 h-8 rounded-full bg-masa-accent text-white flex items-center justify-center text-xs font-bold uppercase">
+                  {user.username?.[0] || user.email?.[0] || 'U'}
+                </span>
+                <span className="max-w-[100px] truncate">{user.username || 'Account'}</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-masa-border rounded-lg shadow-lg py-2 z-50">
+                  <Link to="/dashboard"         onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-masa-dark hover:bg-masa-light">Dashboard</Link>
+                  <Link to="/dashboard/orders"  onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-masa-dark hover:bg-masa-light">My Orders</Link>
+                  <Link to="/dashboard/wishlist" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-masa-dark hover:bg-masa-light">Wishlist</Link>
+                  <Link to="/dashboard/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-masa-dark hover:bg-masa-light">Profile Settings</Link>
+                  <hr className="my-1 border-masa-border" />
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-masa-light">
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="hidden md:inline-flex btn-primary text-sm px-5 py-2">
+              Sign In
+            </Link>
+          )}
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(v => !v)}
+            className="md:hidden p-2 text-masa-dark"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen
+              ? <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              : <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* ── Mobile menu ── */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-masa-border bg-white px-6 py-4 flex flex-col gap-4">
+          <details className="group">
+            <summary className="text-sm font-medium text-masa-dark cursor-pointer list-none flex justify-between items-center">
+              Furniture
+              <svg className="w-4 h-4 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="mt-2 flex flex-col gap-2 pl-2">
+              {furnitureLinks.map(link => (
+                <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)} className="text-sm text-masa-gray hover:text-masa-accent">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </details>
+
+          <Link to="/shop"    onClick={() => setMobileOpen(false)} className="text-sm font-medium text-masa-dark hover:text-masa-accent">Shop</Link>
+          <Link to="/about"   onClick={() => setMobileOpen(false)} className="text-sm font-medium text-masa-dark hover:text-masa-accent">About Us</Link>
+          <Link to="/contact" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-masa-dark hover:text-masa-accent">Contact</Link>
+
+          <hr className="border-masa-border" />
+
+          {user ? (
+            <>
+              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-masa-dark">Dashboard</Link>
+              <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="text-sm font-medium text-red-500 text-left">Sign Out</button>
+            </>
+          ) : (
+            <Link to="/login" onClick={() => setMobileOpen(false)} className="btn-primary text-sm text-center">
+              Sign In
+            </Link>
+          )}
+        </div>
+      )}
+    </header>
+  );
 }
