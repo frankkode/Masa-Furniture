@@ -44,15 +44,17 @@ describe('Cart /api/cart', () => {
   it('adds a product to cart', async () => {
     if (!productId) return;
     const res = await request(app)
-      .post('/api/cart/items')
+      .post('/api/cart')
       .set('Authorization', `Bearer ${token}`)
       .send({ product_id: productId, quantity: 2 });
     expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('items');
   });
 
-  it('returns 401 without auth', async () => {
+  it('returns a guest cart without auth (cart supports guest sessions)', async () => {
     const res = await request(app).get('/api/cart');
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('items');
   });
 });
 
