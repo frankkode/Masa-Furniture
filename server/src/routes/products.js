@@ -1,5 +1,16 @@
 const router = require('express').Router();
 const db     = require('../db/database');
+const jwt    = require('jsonwebtoken');
+
+/* Optionally read the JWT without throwing — used to enrich public
+   endpoints (purchased_by_user flag) without requiring auth. */
+function optionalUserId(req) {
+  try {
+    const h = req.headers.authorization;
+    if (!h?.startsWith('Bearer ')) return null;
+    return jwt.verify(h.split(' ')[1], process.env.JWT_SECRET).id;
+  } catch { return null; }
+}
 
 // helper — attach primary image to each product
 function withImage(product) {
@@ -92,9 +103,12 @@ router.get('/:id', (req, res) => {
 
   if (!product) return res.status(404).json({ error: 'Product not found' });
 
+  // Include avatar_url so review cards can show profile pictures
   const reviews = db.prepare(`
-    SELECT r.*, u.username FROM review r
+    SELECT r.*, u.username, up.avatar_url
+    FROM review r
     JOIN user u ON u.id = r.user_id
+    LEFT JOIN user_profile up ON up.user_id = r.user_id
     WHERE r.product_id = ? AND r.is_approved = 1
     ORDER BY r.created_at DESC
   `).all(product.id);
@@ -103,10 +117,34 @@ router.get('/:id', (req, res) => {
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : 0;
 
-  res.json({ ...withImages(product), reviews, avg_rating: Math.round(avgRating * 10) / 10 });
+  // If the caller is logged in, tell them whether they've purchased this product.
+  // Staff can always review (for demo/testing purposes).
+  let purchased_by_user = false;
+  const userId = optionalUserId(req);
+  if (userId) {
+    const caller = db.prepare('SELECT is_staff FROM user WHERE id = ?').get(userId);
+    if (caller?.is_staff) {
+      purchased_by_user = true;
+    } else {
+      const bought = db.prepare(`
+        SELECT oi.id FROM order_item oi
+        JOIN "order" o ON o.id = oi.order_id
+        WHERE oi.product_id = ? AND o.user_id = ? AND o.status != 'cancelled'
+        LIMIT 1
+      `).get(req.params.id, userId);
+      purchased_by_user = !!bought;
+    }
+  }
+
+  res.json({
+    ...withImages(product),
+    reviews,
+    avg_rating: Math.round(avgRating * 10) / 10,
+    purchased_by_user,
+  });
 });
 
-// POST /api/products/:id/reviews  — requires auth
+// POST /api/products/:id/reviews  — requires auth + must have purchased the product
 const requireAuth = require('../middleware/auth');
 router.post('/:id/reviews', requireAuth, (req, res) => {
   const { rating, title, body } = req.body;
@@ -116,6 +154,20 @@ router.post('/:id/reviews', requireAuth, (req, res) => {
 
   const product = db.prepare('SELECT id FROM product WHERE id = ? AND is_active = 1').get(req.params.id);
   if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  // Staff can review without purchasing (demo / testing)
+  const caller = db.prepare('SELECT is_staff FROM user WHERE id = ?').get(req.user.id);
+  if (!caller?.is_staff) {
+    const bought = db.prepare(`
+      SELECT oi.id FROM order_item oi
+      JOIN "order" o ON o.id = oi.order_id
+      WHERE oi.product_id = ? AND o.user_id = ? AND o.status != 'cancelled'
+      LIMIT 1
+    `).get(req.params.id, req.user.id);
+    if (!bought) {
+      return res.status(403).json({ error: 'You can only review products you have purchased' });
+    }
+  }
 
   // one review per user per product
   const existing = db.prepare(

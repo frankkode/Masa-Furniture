@@ -273,25 +273,51 @@ function ProfileTab({ user }) {
   const { logout } = useAuth();
   const navigate   = useNavigate();
 
-  const [profile,    setProfile]    = useState({ username: user?.username || '', phone: '' });
-  const [profileMsg, setProfileMsg] = useState('');
-  const [profileErr, setProfileErr] = useState('');
-  const [savingProf, setSavingProf] = useState(false);
+  const [profile,      setProfile]      = useState({ username: user?.username || '', phone: '', avatar_url: '' });
+  const [profileMsg,   setProfileMsg]   = useState('');
+  const [profileErr,   setProfileErr]   = useState('');
+  const [savingProf,   setSavingProf]   = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // load phone from server on mount
+  // load phone + avatar_url from server on mount
   useEffect(() => {
     api.get('/auth/profile')
-      .then(r => setProfile({ username: r.data.user?.username || user?.username || '', phone: r.data.profile?.phone || '' }))
+      .then(r => setProfile({
+        username:   r.data.user?.username   || user?.username || '',
+        phone:      r.data.profile?.phone   || '',
+        avatar_url: r.data.profile?.avatar_url || '',
+      }))
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveProfile = async e => {
     e.preventDefault(); setSavingProf(true); setProfileMsg(''); setProfileErr('');
     try {
-      await api.patch('/auth/profile', { username: profile.username.trim(), phone: profile.phone.trim() || undefined });
+      await api.patch('/auth/profile', {
+        username:   profile.username.trim(),
+        phone:      profile.phone.trim() || undefined,
+        avatar_url: profile.avatar_url   || undefined,
+      });
       setProfileMsg('Profile updated successfully.');
     } catch(err) { setProfileErr(err.response?.data?.error || 'Could not save profile.'); }
     finally { setSavingProf(false); }
+  };
+
+  const handleAvatarFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setProfileErr('Please select an image.'); return; }
+    if (file.size > 5 * 1024 * 1024)    { setProfileErr('Image must be under 5 MB.');  return; }
+    setAvatarUploading(true); setProfileErr('');
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await api.post('/admin/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const url = res.data.url;
+      setProfile(p => ({ ...p, avatar_url: url }));
+      await api.patch('/auth/profile', { avatar_url: url });
+    } catch { setProfileErr('Avatar upload failed. Try again.'); }
+    finally { setAvatarUploading(false); }
   };
 
   // ── password ────────────────────────────────────────────────
@@ -363,13 +389,36 @@ function ProfileTab({ user }) {
       <h2 className="text-xl font-bold text-masa-dark">Profile Settings</h2>
 
       {/* avatar row */}
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-masa-accent text-white flex items-center justify-center text-2xl font-bold shrink-0">
-          {(user?.username || 'U')[0].toUpperCase()}
-        </div>
+      <div className="flex items-center gap-5">
+        {/* avatar circle — click to upload */}
+        <label className="relative cursor-pointer group shrink-0">
+          <div className="w-20 h-20 rounded-full bg-masa-accent text-white flex items-center justify-center text-2xl font-bold overflow-hidden border-2 border-masa-border">
+            {profile.avatar_url
+              ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }}/>
+              : <span>{(user?.username || 'U')[0].toUpperCase()}</span>
+            }
+          </div>
+          {/* hover overlay */}
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            {avatarUploading
+              ? <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              : <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            }
+          </div>
+          <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} disabled={avatarUploading}/>
+        </label>
+
         <div>
-          <p className="font-semibold text-masa-dark">{user?.username}</p>
+          <p className="font-semibold text-masa-dark">{profile.username || user?.username}</p>
           <p className="text-sm text-masa-gray">{user?.email}</p>
+          <p className="text-xs text-masa-gray mt-0.5">Click photo to change avatar</p>
           {user?.is_staff && (
             <span className="text-xs bg-masa-accent text-white px-2 py-0.5 rounded-full mt-1 inline-block">Admin</span>
           )}

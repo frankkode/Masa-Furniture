@@ -593,27 +593,63 @@ export default function ProductPage() {
                   </div>
                 )}
 
-                {/* review list */}
+                {/* review list — card with product-image background */}
                 {ratingCount === 0 && (
                   <p className="text-masa-gray text-sm mb-8">No reviews yet — be the first to leave one!</p>
                 )}
-                <div className="flex flex-col gap-6 mb-12">
+                <div className="grid sm:grid-cols-2 gap-4 mb-12">
                   {reviews.map(r => (
-                    <div key={r.id} className="border border-masa-border rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-masa-accent text-white flex items-center justify-center text-xs font-bold uppercase">
-                            {r.username?.[0] || 'U'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-masa-dark">{r.username}</p>
-                            <p className="text-xs text-masa-gray">{formatDate(r.created_at)}</p>
-                          </div>
-                        </div>
-                        <ReviewStars value={r.rating} />
+                    <div key={r.id} className="relative rounded-2xl overflow-hidden min-h-[200px]">
+                      {/* blurred product image as background */}
+                      <div className="absolute inset-0">
+                        <img src={mainSrc} alt=""
+                          className="w-full h-full object-cover scale-110 blur-sm"
+                          onError={e => { e.target.style.display='none'; }}/>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/65 to-black/45"/>
                       </div>
-                      {r.title && <p className="font-semibold text-masa-dark text-sm mb-1">{r.title}</p>}
-                      {r.body  && <p className="text-masa-gray text-sm leading-relaxed">{r.body}</p>}
+
+                      {/* card content */}
+                      <div className="relative p-5 flex flex-col gap-3 h-full">
+                        {/* top row: avatar + name + verified */}
+                        <div className="flex items-center gap-3">
+                          {/* profile pic */}
+                          <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-white/30 shrink-0 bg-masa-accent">
+                            {r.avatar_url
+                              ? <img src={r.avatar_url} alt={r.username}
+                                  className="w-full h-full object-cover"
+                                  onError={e => { e.target.style.display='none'; }}/>
+                              : <span className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+                                  {r.username?.[0]?.toUpperCase() || 'U'}
+                                </span>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-semibold text-sm truncate leading-none">{r.username}</p>
+                            <p className="text-white/55 text-xs mt-0.5">{formatDate(r.created_at)}</p>
+                          </div>
+                          {/* verified purchase badge */}
+                          <span className="flex items-center gap-1 text-xs bg-green-500/20 border border-green-400/40
+                            text-green-300 px-2 py-0.5 rounded-full shrink-0 font-medium">
+                            <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                            </svg>
+                            Verified
+                          </span>
+                        </div>
+
+                        {/* stars */}
+                        <ReviewStars value={r.rating} />
+
+                        {/* title */}
+                        {r.title && (
+                          <p className="text-white font-bold text-base leading-snug">{r.title}</p>
+                        )}
+
+                        {/* body */}
+                        {r.body && (
+                          <p className="text-white/75 text-sm leading-relaxed line-clamp-4">{r.body}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -621,11 +657,13 @@ export default function ProductPage() {
                 {/* write review form */}
                 <div className="border-t border-masa-border pt-8">
                   <h3 className="text-lg font-bold text-masa-dark mb-5">Write a Review</h3>
-                  {!user ? (
+
+                  {/* not logged in */}
+                  {!user && (
                     <div className="flex items-center gap-3 bg-masa-light rounded-xl p-5">
                       <svg className="w-5 h-5 text-masa-gray shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                       </svg>
                       <p className="text-sm text-masa-gray">
                         Please{' '}
@@ -633,51 +671,56 @@ export default function ProductPage() {
                         {' '}to leave a review.
                       </p>
                     </div>
-                  ) : reviewOk ? (
+                  )}
+
+                  {/* logged in but hasn't bought */}
+                  {user && !product.purchased_by_user && !reviewOk && (
+                    <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-5">
+                      <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.6 8H19M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"/>
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">Purchase required</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          Only customers who have bought this product can leave a review.{' '}
+                          <Link to="/shop" className="font-semibold hover:underline">Shop now →</Link>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* review submitted success */}
+                  {user && reviewOk && (
                     <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-5 text-green-700 text-sm">
                       <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
                       </svg>
-                      Thank you! Your review has been submitted and is awaiting approval.
+                      Thank you! Your review has been submitted.
                     </div>
-                  ) : (
+                  )}
+
+                  {/* review form — only for verified purchasers */}
+                  {user && product.purchased_by_user && !reviewOk && (
                     <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
-                      {/* star picker */}
                       <div>
                         <label className="block text-sm font-semibold text-masa-dark mb-2">Your Rating *</label>
                         <ReviewStars value={reviewRating} interactive onSet={setReviewRating} />
                       </div>
-                      {/* title */}
                       <div>
                         <label className="block text-sm font-semibold text-masa-dark mb-1">Title</label>
-                        <input
-                          type="text"
-                          value={reviewTitle}
-                          onChange={e => setReviewTitle(e.target.value)}
-                          placeholder="Summarise your experience"
-                          maxLength={120}
-                          className="w-full border border-masa-border rounded-lg px-4 py-2.5 text-sm text-masa-dark focus:outline-none focus:border-masa-accent"
-                        />
+                        <input type="text" value={reviewTitle} onChange={e => setReviewTitle(e.target.value)}
+                          placeholder="Summarise your experience" maxLength={120}
+                          className="w-full border border-masa-border rounded-lg px-4 py-2.5 text-sm text-masa-dark focus:outline-none focus:border-masa-accent"/>
                       </div>
-                      {/* body */}
                       <div>
                         <label className="block text-sm font-semibold text-masa-dark mb-1">Review</label>
-                        <textarea
-                          value={reviewBody}
-                          onChange={e => setReviewBody(e.target.value)}
-                          placeholder="What did you love about it? Any tips?"
-                          rows={4}
-                          className="w-full border border-masa-border rounded-lg px-4 py-2.5 text-sm text-masa-dark focus:outline-none focus:border-masa-accent resize-none"
-                        />
+                        <textarea value={reviewBody} onChange={e => setReviewBody(e.target.value)}
+                          placeholder="What did you love about it? Any tips?" rows={4}
+                          className="w-full border border-masa-border rounded-lg px-4 py-2.5 text-sm text-masa-dark focus:outline-none focus:border-masa-accent resize-none"/>
                       </div>
-                      {reviewError && (
-                        <p className="text-red-500 text-sm">{reviewError}</p>
-                      )}
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="self-start btn-primary disabled:opacity-60"
-                      >
+                      {reviewError && <p className="text-red-500 text-sm">{reviewError}</p>}
+                      <button type="submit" disabled={submitting} className="self-start btn-primary disabled:opacity-60">
                         {submitting ? 'Submitting…' : 'Submit Review'}
                       </button>
                     </form>
