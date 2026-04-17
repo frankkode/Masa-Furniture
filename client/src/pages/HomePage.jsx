@@ -434,13 +434,13 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════
-          4. EXPERIENCES — left photo bleeds to edge
+          4. EXPERIENCES — left photo contained in grid
       ═══════════════════════════════════════ */}
-      <section className="py-24 bg-white overflow-hidden">
-        <div className="container-main grid md:grid-cols-2 gap-16 items-center">
+      <section className="py-24 bg-white">
+        <div className="container-main grid md:grid-cols-2 gap-12 items-center">
 
-          {/* left: room photo — extends to viewport left edge */}
-          <div className="relative -ml-4 md:-ml-[calc((100vw-100%)/2+1.5rem)] rounded-r-3xl overflow-hidden shadow-xl"
+          {/* left: room photo — contained, same width as text column */}
+          <div className="rounded-2xl overflow-hidden shadow-lg"
             style={{ aspectRatio: '4/3' }}>
             <img
               src="/exp-room.jpg"
