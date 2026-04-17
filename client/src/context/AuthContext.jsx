@@ -3,24 +3,40 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-/* dispatch this after any auth state change so CartContext can re-sync */
 function notifyAuthChange() {
   window.dispatchEvent(new Event('auth:change'));
 }
 
+/* Helpers — keep user in localStorage so refresh is instant */
+const USER_KEY = 'masa_user';
+const saveUser  = u  => u ? localStorage.setItem(USER_KEY, JSON.stringify(u)) : localStorage.removeItem(USER_KEY);
+const loadUser  = () => { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } };
+
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(null);
+  // Seed state immediately from localStorage — no flash of "logged out"
+  const [user,    setUser]    = useState(() => loadUser());
   const [loading, setLoading] = useState(true);
 
-  /* restore session on mount */
+  /* On mount: verify the stored token is still valid */
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       api.get('/auth/me')
-        .then(res => { setUser(res.data.user); notifyAuthChange(); })
-        .catch(() => localStorage.removeItem('token'))
+        .then(res => {
+          setUser(res.data.user);
+          saveUser(res.data.user);
+          notifyAuthChange();
+        })
+        .catch(() => {
+          // Token expired / invalid → clear everything
+          localStorage.removeItem('token');
+          saveUser(null);
+          setUser(null);
+        })
         .finally(() => setLoading(false));
     } else {
+      saveUser(null);
+      setUser(null);
       setLoading(false);
     }
   }, []);
@@ -29,7 +45,8 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
-    notifyAuthChange(); // ← triggers CartContext to re-fetch & merge guest cart
+    saveUser(res.data.user);
+    notifyAuthChange();
     return res.data.user;
   };
 
@@ -37,14 +54,16 @@ export function AuthProvider({ children }) {
     const res = await api.post('/auth/register', { username, email, password });
     localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
-    notifyAuthChange(); // ← merge any guest cart into the new account
+    saveUser(res.data.user);
+    notifyAuthChange();
     return res.data.user;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    saveUser(null);
     setUser(null);
-    notifyAuthChange(); // ← CartContext re-fetches (returns empty guest cart)
+    notifyAuthChange();
   };
 
   return (

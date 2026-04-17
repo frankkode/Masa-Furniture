@@ -33,14 +33,26 @@ router.post('/create-intent', requireAuth, async (req, res) => {
 });
 
 // POST /api/payments/webhook  — Stripe webhook (no auth middleware)
+// LOCAL DEV: run  stripe listen --forward-to localhost:5000/api/payments/webhook
+// then copy the whsec_... secret it prints and put it in server/.env as STRIPE_WEBHOOK_SECRET
 router.post('/webhook', (req, res) => {
-  const sig = req.headers['stripe-signature'];
+  const sig    = req.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` });
+  // Skip signature verification when no real secret is configured (dev fallback)
+  if (!secret || secret === 'whsec_placeholder') {
+    try {
+      event = JSON.parse(req.body);
+    } catch {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+  } else {
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, secret);
+    } catch (err) {
+      return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` });
+    }
   }
 
   if (event.type === 'payment_intent.succeeded') {

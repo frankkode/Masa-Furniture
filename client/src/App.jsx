@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { AuthProvider }    from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider }    from './context/CartContext';
 import Navbar              from './components/layout/Navbar';
 import Footer              from './components/layout/Footer';
@@ -16,36 +16,57 @@ import DashboardPage       from './pages/DashboardPage';
 import NotFoundPage        from './pages/NotFoundPage';
 import ProtectedRoute      from './components/layout/ProtectedRoute';
 
+/* ── AppShell: inside providers so it can read AuthContext ── */
+function AppShell() {
+  const { loading } = useAuth();
+
+  // Show spinner while the stored JWT is being verified in the background.
+  // Because user state is seeded from localStorage instantly, the navbar
+  // already shows the correct logged-in state — only protected route
+  // redirects need to wait for this check.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-10 h-10 rounded-full border-4 border-masa-accent border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <CartDrawer />
+      <main className="flex-1 pt-16">
+        <Routes>
+          <Route path="/"               element={<HomePage />} />
+          <Route path="/shop"           element={<ShopPage />} />
+          <Route path="/shop/:category" element={<ShopPage />} />
+          <Route path="/product/:id"    element={<ProductPage />} />
+          <Route path="/cart"           element={<CartPage />} />
+          <Route path="/login"          element={<LoginPage />} />
+          <Route path="/register"       element={<RegisterPage />} />
+          <Route path="/checkout" element={
+            <ProtectedRoute><CheckoutPage /></ProtectedRoute>
+          } />
+          <Route path="/order/:id" element={
+            <ProtectedRoute><OrderConfirmPage /></ProtectedRoute>
+          } />
+          <Route path="/dashboard/*" element={
+            <ProtectedRoute><DashboardPage /></ProtectedRoute>
+          } />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <CartDrawer />
-          <main className="flex-1 pt-16">
-            <Routes>
-              <Route path="/"              element={<HomePage />} />
-              <Route path="/shop"          element={<ShopPage />} />
-              <Route path="/shop/:category" element={<ShopPage />} />
-              <Route path="/product/:id"   element={<ProductPage />} />
-              <Route path="/cart"          element={<CartPage />} />
-              <Route path="/login"         element={<LoginPage />} />
-              <Route path="/register"      element={<RegisterPage />} />
-              <Route path="/checkout" element={
-                <ProtectedRoute><CheckoutPage /></ProtectedRoute>
-              } />
-              <Route path="/order/:id" element={
-                <ProtectedRoute><OrderConfirmPage /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/*" element={
-                <ProtectedRoute><DashboardPage /></ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <AppShell />
       </CartProvider>
     </AuthProvider>
   );
