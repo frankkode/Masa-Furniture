@@ -11,7 +11,7 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', creden
 
 // Serve uploaded product images
 // In production swap this for Vercel Blob CDN URLs (no static serving needed)
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // raw body needed for Stripe webhook signature verification
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
