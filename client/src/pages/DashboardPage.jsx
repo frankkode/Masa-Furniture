@@ -514,15 +514,403 @@ function ProfileTab({ user }) {
 ═══════════════════════════════════════════════════════════════ */
 const ORDER_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
 
-function AdminTab() {
-  const [stats,    setStats]    = useState(null);
-  const [orders,   setOrders]   = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState('');
-  const [updating, setUpdating] = useState(null);
-  const [search,   setSearch]   = useState('');
+/* ── blank product for the add form ─────────────────────── */
+const EMPTY_PRODUCT = {
+  name: '', slug: '', sku: '', category_id: '', price: '',
+  sale_price: '', description: '', stock: '0', material: '',
+  dimensions: '', color: '', weight: '', image_url: '',
+  is_active: true, is_featured: false,
+};
 
-  const fetchData = (statusFilter) => {
+/* ── ProductModal ─────────────────────────────────────────
+   Used for both "Add" and "Edit" actions.
+──────────────────────────────────────────────────────────── */
+function ProductModal({ initial, categories, onSave, onCancel, saving }) {
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_PRODUCT,
+    ...initial,
+    is_active:   initial?.is_active  ?? true,
+    is_featured: initial?.is_featured ?? false,
+    image_url:   initial?.image_url  ?? '',
+  }));
+  const [error, setError] = useState('');
+
+  const set = (field, val) => setForm(p => ({ ...p, [field]: val }));
+
+  // auto-generate slug from name (only when slug is empty / unchanged)
+  const handleName = (val) => {
+    set('name', val);
+    if (!form.slug || form.slug === form.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) {
+      set('slug', val.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!form.name || !form.sku || !form.category_id || form.price === '') {
+      setError('Name, SKU, Category and Price are required.'); return;
+    }
+    try {
+      await onSave({
+        ...form,
+        price:       parseFloat(form.price),
+        sale_price:  form.sale_price ? parseFloat(form.sale_price) : null,
+        stock:       parseInt(form.stock) || 0,
+        weight:      form.weight ? parseFloat(form.weight) : null,
+        is_active:   form.is_active  ? 1 : 0,
+        is_featured: form.is_featured ? 1 : 0,
+      });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save product.');
+    }
+  };
+
+  const inp = 'w-full px-3 py-2 text-sm border border-masa-border rounded-xl focus:outline-none focus:border-masa-accent transition-colors';
+  const lbl = 'block text-xs font-semibold text-masa-dark mb-1';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-masa-border px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-bold text-masa-dark">
+            {initial?.id ? 'Edit Product' : 'Add New Product'}
+          </h3>
+          <button onClick={onCancel} className="p-2 hover:bg-masa-light rounded-full transition-colors">
+            <svg className="w-5 h-5 text-masa-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>
+          )}
+
+          {/* name — full width */}
+          <div>
+            <label className={lbl}>Product Name *</label>
+            <input className={inp} value={form.name} onChange={e => handleName(e.target.value)} placeholder="e.g. Scandinavian Lounge Chair"/>
+          </div>
+
+          {/* slug */}
+          <div>
+            <label className={lbl}>URL Slug</label>
+            <input className={inp} value={form.slug} onChange={e => set('slug', e.target.value)} placeholder="auto-generated from name"/>
+          </div>
+
+          {/* sku + category */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>SKU *</label>
+              <input className={inp} value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. CHAIR-001"/>
+            </div>
+            <div>
+              <label className={lbl}>Category *</label>
+              <select className={inp} value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+                <option value="">Select category…</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* price + sale price */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Price (€) *</label>
+              <input type="number" min="0" step="0.01" className={inp} value={form.price} onChange={e => set('price', e.target.value)} placeholder="299.00"/>
+            </div>
+            <div>
+              <label className={lbl}>Sale Price (€)</label>
+              <input type="number" min="0" step="0.01" className={inp} value={form.sale_price} onChange={e => set('sale_price', e.target.value)} placeholder="optional"/>
+            </div>
+          </div>
+
+          {/* stock + color */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Stock</label>
+              <input type="number" min="0" className={inp} value={form.stock} onChange={e => set('stock', e.target.value)}/>
+            </div>
+            <div>
+              <label className={lbl}>Color</label>
+              <input className={inp} value={form.color} onChange={e => set('color', e.target.value)} placeholder="e.g. Oak / White"/>
+            </div>
+          </div>
+
+          {/* material + dimensions */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Material</label>
+              <input className={inp} value={form.material} onChange={e => set('material', e.target.value)} placeholder="e.g. Solid oak"/>
+            </div>
+            <div>
+              <label className={lbl}>Dimensions</label>
+              <input className={inp} value={form.dimensions} onChange={e => set('dimensions', e.target.value)} placeholder="e.g. 80×85×75 cm"/>
+            </div>
+          </div>
+
+          {/* image url */}
+          <div>
+            <label className={lbl}>Primary Image URL</label>
+            <input className={inp} value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="/products/chair.jpg or https://…"/>
+            {form.image_url && (
+              <img src={form.image_url} alt="preview" onError={e => e.target.style.display='none'}
+                className="mt-2 h-24 w-24 object-cover rounded-xl border border-masa-border"/>
+            )}
+          </div>
+
+          {/* description */}
+          <div>
+            <label className={lbl}>Description</label>
+            <textarea rows={3} className={`${inp} resize-none`} value={form.description}
+              onChange={e => set('description', e.target.value)} placeholder="Short product description…"/>
+          </div>
+
+          {/* toggles */}
+          <div className="flex items-center gap-6">
+            {[
+              { field: 'is_active',   label: 'Active (visible in shop)' },
+              { field: 'is_featured', label: 'Featured on homepage'     },
+            ].map(({ field, label }) => (
+              <label key={field} className="flex items-center gap-2 cursor-pointer select-none">
+                <button type="button" onClick={() => set(field, !form[field])}
+                  className={`w-10 h-6 rounded-full transition-colors relative ${form[field] ? 'bg-masa-accent' : 'bg-gray-200'}`}>
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${form[field] ? 'left-5' : 'left-1'}`}/>
+                </button>
+                <span className="text-sm text-masa-dark">{label}</span>
+              </label>
+            ))}
+          </div>
+
+          {/* actions */}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl border border-masa-border text-sm font-semibold text-masa-dark hover:bg-masa-light transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-masa-accent text-white text-sm font-semibold hover:bg-masa-accent/90 transition-colors disabled:opacity-60">
+              {saving ? 'Saving…' : (initial?.id ? 'Save Changes' : 'Add Product')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── AdminProductsPanel ───────────────────────────────────── */
+function AdminProductsPanel() {
+  const [products,    setProducts]    = useState([]);
+  const [categories,  setCategories]  = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState('');
+  const [modal,       setModal]       = useState(null); // null | 'add' | product-object
+  const [saving,      setSaving]      = useState(false);
+  const [deleteId,    setDeleteId]    = useState(null);
+
+  const load = () => {
+    setLoading(true);
+    const qs = search ? `?search=${encodeURIComponent(search)}&limit=100` : '?limit=100';
+    Promise.all([api.get(`/admin/products${qs}`), api.get('/admin/categories')])
+      .then(([p, c]) => { setProducts(p.data.products || []); setCategories(c.data.categories || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);            // initial load
+  useEffect(() => { load(); }, [search]);      // search
+
+  const handleSave = async (data) => {
+    setSaving(true);
+    try {
+      if (modal?.id) {
+        const res = await api.patch(`/admin/products/${modal.id}`, data);
+        setProducts(prev => prev.map(p => p.id === modal.id ? { ...p, ...res.data.product } : p));
+      } else {
+        const res = await api.post('/admin/products', data);
+        setProducts(prev => [{ ...res.data.product, category_name: categories.find(c=>c.id==data.category_id)?.name, image_url: data.image_url||null }, ...prev]);
+      }
+      setModal(null);
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this product? This cannot be undone.')) return;
+    setDeleteId(id);
+    try {
+      await api.delete(`/admin/products/${id}`);
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } catch { alert('Failed to delete product.'); }
+    finally { setDeleteId(null); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-masa-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input type="text" placeholder="Search by name, SKU or category…" value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm border border-masa-border rounded-xl focus:outline-none focus:border-masa-accent transition-colors"/>
+        </div>
+        <button onClick={() => setModal('add')}
+          className="flex items-center gap-2 px-4 py-2 bg-masa-accent text-white text-sm font-semibold rounded-xl hover:bg-masa-accent/90 transition-colors shrink-0">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+          </svg>
+          Add Product
+        </button>
+      </div>
+
+      {/* table */}
+      {loading ? (
+        <div className="space-y-2">{[0,1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-14 text-masa-gray text-sm border border-dashed border-masa-border rounded-xl">
+          {search ? `No products matching "${search}".` : 'No products yet. Add your first one!'}
+        </div>
+      ) : (
+        <div className="border border-masa-border rounded-xl overflow-hidden">
+          {/* header — desktop */}
+          <div className="hidden md:grid grid-cols-[56px_1fr_110px_90px_70px_80px_100px] gap-3 bg-masa-light px-4 py-3 text-xs font-semibold text-masa-gray uppercase tracking-wider border-b border-masa-border">
+            <span></span>
+            <span>Product</span>
+            <span>Category</span>
+            <span>Price</span>
+            <span>Stock</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </div>
+
+          <div className="divide-y divide-masa-border">
+            {products.map(p => (
+              <div key={p.id} className="px-4 py-3">
+                {/* desktop row */}
+                <div className="hidden md:grid grid-cols-[56px_1fr_110px_90px_70px_80px_100px] gap-3 items-center">
+                  {/* thumb */}
+                  <div className="w-12 h-12 rounded-lg bg-masa-light overflow-hidden shrink-0">
+                    {p.image_url
+                      ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover"/>
+                      : <div className="w-full h-full flex items-center justify-center text-masa-gray text-xl">🛋️</div>
+                    }
+                  </div>
+                  {/* name + sku */}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-masa-dark truncate">{p.name}</p>
+                    <p className="text-xs text-masa-gray truncate">SKU: {p.sku}</p>
+                  </div>
+                  <span className="text-xs text-masa-gray truncate">{p.category_name || '—'}</span>
+                  <div>
+                    {p.sale_price
+                      ? <><span className="text-sm font-bold text-masa-accent">€{Number(p.sale_price).toFixed(0)}</span>
+                          <span className="text-xs text-masa-gray line-through ml-1">€{Number(p.price).toFixed(0)}</span></>
+                      : <span className="text-sm font-semibold text-masa-dark">€{Number(p.price).toFixed(0)}</span>
+                    }
+                  </div>
+                  <span className={`text-xs font-semibold ${p.stock < 5 ? 'text-red-600' : 'text-masa-dark'}`}>{p.stock}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit
+                      ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {p.is_active ? 'Active' : 'Hidden'}
+                    </span>
+                    {p.is_featured ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full w-fit bg-yellow-100 text-yellow-700">Featured</span> : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setModal({ ...p, image_url: p.image_url || '' })}
+                      className="p-1.5 rounded-lg hover:bg-masa-light transition-colors text-masa-gray hover:text-masa-accent" title="Edit">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                    </button>
+                    <button onClick={() => handleDelete(p.id)} disabled={deleteId === p.id}
+                      className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-masa-gray hover:text-red-600 disabled:opacity-40" title="Delete">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* mobile card */}
+                <div className="md:hidden flex gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-masa-light overflow-hidden shrink-0">
+                    {p.image_url
+                      ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover"/>
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">🛋️</div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-masa-dark truncate">{p.name}</p>
+                        <p className="text-xs text-masa-gray">SKU: {p.sku} · {p.category_name}</p>
+                      </div>
+                      <span className="text-sm font-bold text-masa-accent shrink-0">€{Number(p.sale_price || p.price).toFixed(0)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold
+                        ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {p.is_active ? 'Active' : 'Hidden'}
+                      </span>
+                      <span className="text-xs text-masa-gray">Stock: {p.stock}</span>
+                      <div className="ml-auto flex gap-2">
+                        <button onClick={() => setModal({ ...p, image_url: p.image_url || '' })}
+                          className="p-1.5 rounded-lg bg-masa-light text-masa-gray hover:text-masa-accent transition-colors">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                          </svg>
+                        </button>
+                        <button onClick={() => handleDelete(p.id)} disabled={deleteId === p.id}
+                          className="p-1.5 rounded-lg bg-masa-light text-masa-gray hover:text-red-600 transition-colors disabled:opacity-40">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-masa-light px-4 py-2.5 border-t border-masa-border text-xs text-masa-gray">
+            {products.length} product{products.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      )}
+
+      {/* modal */}
+      {modal && (
+        <ProductModal
+          initial={modal === 'add' ? null : modal}
+          categories={categories}
+          onSave={handleSave}
+          onCancel={() => setModal(null)}
+          saving={saving}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── AdminTab (Orders + Products tabs) ───────────────────── */
+function AdminTab() {
+  const [activeTab, setActiveTab] = useState('orders');
+  const [stats,     setStats]     = useState(null);
+  const [orders,    setOrders]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [filter,    setFilter]    = useState('');
+  const [updating,  setUpdating]  = useState(null);
+  const [search,    setSearch]    = useState('');
+
+  const fetchOrders = (statusFilter) => {
     setLoading(true);
     const qs = statusFilter ? `?status=${statusFilter}&limit=100` : '?limit=100';
     Promise.all([api.get('/admin/stats'), api.get(`/admin/orders${qs}`)])
@@ -531,7 +919,7 @@ function AdminTab() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(filter); }, [filter]);
+  useEffect(() => { fetchOrders(filter); }, [filter]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdating(orderId);
@@ -556,7 +944,7 @@ function AdminTab() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-masa-dark">Admin Panel</h2>
-          <p className="text-sm text-masa-gray mt-0.5">Manage all orders and monitor store activity</p>
+          <p className="text-sm text-masa-gray mt-0.5">Manage orders and products</p>
         </div>
         <span className="text-xs bg-masa-accent text-white px-3 py-1.5 rounded-full font-semibold">Staff Access</span>
       </div>
@@ -567,7 +955,7 @@ function AdminTab() {
           {[
             { label: 'Total Orders',  value: stats.totalOrders,   icon: '📦', bg: 'bg-blue-50',   text: 'text-blue-700'   },
             { label: 'Pending',       value: stats.pendingOrders, icon: '⏳', bg: 'bg-yellow-50', text: 'text-yellow-700' },
-            { label: 'Revenue',       value: `$${Number(stats.totalRevenue).toFixed(0)}`, icon: '💰', bg: 'bg-green-50', text: 'text-green-700' },
+            { label: 'Revenue',       value: `€${Number(stats.totalRevenue).toFixed(0)}`, icon: '💰', bg: 'bg-green-50', text: 'text-green-700' },
             { label: 'Products',      value: stats.totalProducts, icon: '🛋️', bg: 'bg-purple-50', text: 'text-purple-700' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
@@ -581,95 +969,109 @@ function AdminTab() {
         </div>
       )}
 
-      {/* search + filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-masa-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input type="text" placeholder="Search by name, email or order #" value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-masa-border rounded-xl focus:outline-none focus:border-masa-accent transition-colors"/>
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {['', ...ORDER_STATUSES].map(s => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`px-3 py-2 text-xs rounded-full font-medium transition-colors capitalize
-                ${filter === s ? 'bg-masa-accent text-white' : 'bg-masa-light text-masa-gray hover:text-masa-dark'}`}>
-              {s || 'All'}
-            </button>
-          ))}
-        </div>
+      {/* sub-tab switcher */}
+      <div className="flex gap-1 bg-masa-light p-1 rounded-xl w-fit">
+        {[
+          { id: 'orders',   label: 'Orders',   icon: '📦' },
+          { id: 'products', label: 'Products', icon: '🛋️' },
+        ].map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all
+              ${activeTab === t.id ? 'bg-white shadow text-masa-dark' : 'text-masa-gray hover:text-masa-dark'}`}>
+            <span>{t.icon}</span>{t.label}
+          </button>
+        ))}
       </div>
 
-      {/* orders table */}
-      {loading ? (
-        <div className="space-y-2">{[0,1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
-      ) : visible.length === 0 ? (
-        <div className="text-center py-14 text-masa-gray text-sm border border-dashed border-masa-border rounded-xl">
-          No orders found{filter ? ` with status "${filter}"` : ''}{search ? ` matching "${search}"` : ''}.
-        </div>
-      ) : (
-        <div className="border border-masa-border rounded-xl overflow-hidden">
-          {/* desktop header */}
-          <div className="hidden md:grid grid-cols-[70px_1fr_110px_90px_150px] gap-3 bg-masa-light px-4 py-3 text-xs font-semibold text-masa-gray uppercase tracking-wider border-b border-masa-border">
-            <span>#</span><span>Customer</span><span>Date</span><span>Total</span><span>Status</span>
+      {/* ── Orders panel ── */}
+      {activeTab === 'orders' && (
+        <div className="space-y-4">
+          {/* search + filter */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-masa-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input type="text" placeholder="Search by name, email or order #" value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-masa-border rounded-xl focus:outline-none focus:border-masa-accent transition-colors"/>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {['', ...ORDER_STATUSES].map(s => (
+                <button key={s} onClick={() => setFilter(s)}
+                  className={`px-3 py-2 text-xs rounded-full font-medium transition-colors capitalize
+                    ${filter === s ? 'bg-masa-accent text-white' : 'bg-masa-light text-masa-gray hover:text-masa-dark'}`}>
+                  {s || 'All'}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="divide-y divide-masa-border">
-            {visible.map(order => (
-              <div key={order.id} className="px-4 py-3">
-                {/* desktop row */}
-                <div className="hidden md:grid grid-cols-[70px_1fr_110px_90px_150px] gap-3 items-center">
-                  <span className="font-bold text-masa-dark text-sm">#{String(order.id).padStart(5,'0')}</span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-masa-dark truncate">{order.username}</p>
-                    <p className="text-xs text-masa-gray truncate">{order.email}</p>
-                  </div>
-                  <span className="text-xs text-masa-gray">{formatDate(order.created_at)}</span>
-                  <span className="text-sm font-semibold text-masa-accent">${Number(order.total_price).toFixed(2)}</span>
-                  <select value={order.status} disabled={updating === order.id}
-                    onChange={e => handleStatusChange(order.id, e.target.value)}
-                    className={`text-xs font-semibold rounded-full px-3 py-1.5 border appearance-none cursor-pointer
-                                focus:outline-none focus:ring-2 focus:ring-masa-accent/30
-                                ${updating === order.id ? 'opacity-50' : ''}
-                                ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                    {ORDER_STATUSES.map(s => (
-                      <option key={s} value={s} className="bg-white text-masa-dark capitalize">{s.replace('_',' ')}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* mobile card */}
-                <div className="md:hidden space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-masa-dark text-sm">#{String(order.id).padStart(5,'0')}</span>
-                    <span className="text-sm font-semibold text-masa-accent">${Number(order.total_price).toFixed(2)}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-masa-dark">{order.username}</p>
-                    <p className="text-xs text-masa-gray">{order.email} · {formatDate(order.created_at)}</p>
-                  </div>
-                  <select value={order.status} disabled={updating === order.id}
-                    onChange={e => handleStatusChange(order.id, e.target.value)}
-                    className={`w-full text-xs font-semibold rounded-xl px-3 py-2 border appearance-none cursor-pointer
-                                focus:outline-none focus:ring-2 focus:ring-masa-accent/30
-                                ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                    {ORDER_STATUSES.map(s => (
-                      <option key={s} value={s} className="bg-white text-masa-dark capitalize">{s.replace('_',' ')}</option>
-                    ))}
-                  </select>
-                </div>
+          {loading ? (
+            <div className="space-y-2">{[0,1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
+          ) : visible.length === 0 ? (
+            <div className="text-center py-14 text-masa-gray text-sm border border-dashed border-masa-border rounded-xl">
+              No orders found{filter ? ` with status "${filter}"` : ''}{search ? ` matching "${search}"` : ''}.
+            </div>
+          ) : (
+            <div className="border border-masa-border rounded-xl overflow-hidden">
+              <div className="hidden md:grid grid-cols-[70px_1fr_110px_90px_150px] gap-3 bg-masa-light px-4 py-3 text-xs font-semibold text-masa-gray uppercase tracking-wider border-b border-masa-border">
+                <span>#</span><span>Customer</span><span>Date</span><span>Total</span><span>Status</span>
               </div>
-            ))}
-          </div>
-
-          {/* footer count */}
-          <div className="bg-masa-light px-4 py-2.5 border-t border-masa-border text-xs text-masa-gray">
-            Showing {visible.length} of {orders.length} order{orders.length !== 1 ? 's' : ''}
-          </div>
+              <div className="divide-y divide-masa-border">
+                {visible.map(order => (
+                  <div key={order.id} className="px-4 py-3">
+                    <div className="hidden md:grid grid-cols-[70px_1fr_110px_90px_150px] gap-3 items-center">
+                      <span className="font-bold text-masa-dark text-sm">#{String(order.id).padStart(5,'0')}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-masa-dark truncate">{order.username}</p>
+                        <p className="text-xs text-masa-gray truncate">{order.email}</p>
+                      </div>
+                      <span className="text-xs text-masa-gray">{formatDate(order.created_at)}</span>
+                      <span className="text-sm font-semibold text-masa-accent">€{Number(order.total_price).toFixed(2)}</span>
+                      <select value={order.status} disabled={updating === order.id}
+                        onChange={e => handleStatusChange(order.id, e.target.value)}
+                        className={`text-xs font-semibold rounded-full px-3 py-1.5 border appearance-none cursor-pointer
+                                    focus:outline-none focus:ring-2 focus:ring-masa-accent/30
+                                    ${updating === order.id ? 'opacity-50' : ''}
+                                    ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s} value={s} className="bg-white text-masa-dark capitalize">{s.replace('_',' ')}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:hidden space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-masa-dark text-sm">#{String(order.id).padStart(5,'0')}</span>
+                        <span className="text-sm font-semibold text-masa-accent">€{Number(order.total_price).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-masa-dark">{order.username}</p>
+                        <p className="text-xs text-masa-gray">{order.email} · {formatDate(order.created_at)}</p>
+                      </div>
+                      <select value={order.status} disabled={updating === order.id}
+                        onChange={e => handleStatusChange(order.id, e.target.value)}
+                        className={`w-full text-xs font-semibold rounded-xl px-3 py-2 border appearance-none cursor-pointer
+                                    focus:outline-none focus:ring-2 focus:ring-masa-accent/30
+                                    ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s} value={s} className="bg-white text-masa-dark capitalize">{s.replace('_',' ')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-masa-light px-4 py-2.5 border-t border-masa-border text-xs text-masa-gray">
+                Showing {visible.length} of {orders.length} order{orders.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* ── Products panel ── */}
+      {activeTab === 'products' && <AdminProductsPanel />}
     </div>
   );
 }
