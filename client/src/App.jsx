@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth }       from './context/AuthContext';
 import { CartProvider }                from './context/CartContext';
 import { WishlistProvider }            from './context/WishlistContext';
+import { NotificationProvider }        from './context/NotificationContext';
 import Navbar              from './components/layout/Navbar';
 import Footer              from './components/layout/Footer';
 import CartDrawer          from './components/layout/CartDrawer';
@@ -72,7 +73,9 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
-          <AppShell />
+          <NotificationProvider>
+            <AppShell />
+          </NotificationProvider>
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>

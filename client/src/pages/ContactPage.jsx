@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../services/api';
 
 const CONTACT_INFO = [
   {
@@ -65,10 +66,13 @@ export default function ContactPage() {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
     setStatus('sending');
-    // Simulate a short async send (replace with real API call when available)
-    await new Promise(r => setTimeout(r, 900));
     try {
-      // In production this would be: await api.post('/contact', form);
+      await api.post('/contact', {
+        name:    form.name,
+        email:   form.email,
+        subject: form.topic || undefined,
+        message: form.message,
+      });
       setStatus('sent');
     } catch {
       setErrMsg('Something went wrong. Please email us directly at hello@masa.fi');

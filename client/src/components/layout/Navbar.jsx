@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useNotifications } from '../../context/NotificationContext';
 
 const furnitureLinks = [
   { label: 'Chairs',  to: '/shop/chairs' },
@@ -15,16 +16,19 @@ const furnitureLinks = [
 export default function Navbar() {
   const { user, logout }   = useAuth();
   const { itemCount, isOpen, setIsOpen } = useCart();
+  const { notifications, unread, markRead, markAllRead, remove } = useNotifications();
   const navigate           = useNavigate();
   const location           = useLocation();
 
   const [mobileOpen,    setMobileOpen]    = useState(false);
   const [furnitureOpen, setFurnitureOpen] = useState(false);
   const [profileOpen,   setProfileOpen]   = useState(false);
+  const [bellOpen,      setBellOpen]      = useState(false);
   const [scrolled,      setScrolled]      = useState(false);
 
   const furnitureRef = useRef(null);
   const profileRef   = useRef(null);
+  const bellRef      = useRef(null);
 
   const isHome = location.pathname === '/';
   // Transparent navbar: on homepage only when not yet scrolled
@@ -35,6 +39,7 @@ export default function Navbar() {
     function handleClick(e) {
       if (furnitureRef.current && !furnitureRef.current.contains(e.target)) setFurnitureOpen(false);
       if (profileRef.current   && !profileRef.current.contains(e.target))   setProfileOpen(false);
+      if (bellRef.current      && !bellRef.current.contains(e.target))       setBellOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -137,6 +142,80 @@ export default function Navbar() {
               {itemCount > 99 ? '99+' : itemCount}
             </span>
           </button>
+
+          {/* Notification bell — only for logged-in users */}
+          {user && (
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={() => { setBellOpen(v => !v); if (!bellOpen && unread > 0) markAllRead(); }}
+                className={`relative p-2 transition-colors
+                  ${transparent ? 'text-white hover:text-white/80' : 'text-masa-dark hover:text-masa-accent'}`}
+                aria-label="Notifications"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full
+                                   bg-red-500 text-white text-[10px] font-bold
+                                   flex items-center justify-center leading-none px-0.5">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </button>
+
+              {bellOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-masa-border rounded-2xl shadow-xl z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-masa-border">
+                    <p className="font-semibold text-sm text-masa-dark">Notifications</p>
+                    {notifications.some(n => !n.is_read) && (
+                      <button onClick={markAllRead} className="text-xs text-masa-accent hover:underline">Mark all read</button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto divide-y divide-masa-border">
+                    {notifications.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-masa-gray">No notifications yet</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id}
+                          className={`px-4 py-3 flex items-start gap-3 hover:bg-masa-light transition-colors
+                            ${!n.is_read ? 'bg-orange-50' : ''}`}>
+                          {/* type dot */}
+                          <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0
+                            ${n.type === 'success' ? 'bg-green-500' : n.type === 'warning' ? 'bg-yellow-500' : n.type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`}/>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-masa-dark">{n.title}</p>
+                            <p className="text-xs text-masa-gray mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
+                            {n.link && (
+                              <Link to={n.link} onClick={() => { markRead(n.id); setBellOpen(false); }}
+                                className="text-xs text-masa-accent hover:underline mt-1 inline-block">
+                                View →
+                              </Link>
+                            )}
+                          </div>
+                          <button onClick={() => remove(n.id)}
+                            className="text-masa-gray hover:text-red-500 transition-colors shrink-0 mt-0.5" title="Dismiss">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-2.5 border-t border-masa-border text-center">
+                      <Link to="/dashboard/orders" onClick={() => setBellOpen(false)}
+                        className="text-xs text-masa-accent hover:underline font-medium">
+                        View all orders →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Auth */}
           {user ? (

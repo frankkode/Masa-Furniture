@@ -18,9 +18,9 @@ const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PK || 'pk_test_placeholder'
 );
 
-/* ── constants ─────────────────────────────────────────────────── */
-const FREE_SHIPPING_THRESHOLD = 500;
-const SHIPPING_COST           = 25;
+/* ── shipping defaults (overridden at runtime by /api/orders/shipping-cost) */
+const DEFAULT_FREE_THRESHOLD = 100;
+const DEFAULT_SHIPPING_FEE   = 9.90;
 
 const CARD_ELEMENT_OPTIONS = {
   style: {
@@ -369,7 +369,9 @@ export default function CheckoutPage() {
      the CartPage passed a discount amount via state */
   const discount      = location.state?.discount   || 0;
 
-  const shippingCost  = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+  const [shippingFee,      setShippingFee]      = useState(DEFAULT_SHIPPING_FEE);
+  const [freeThreshold,    setFreeThreshold]    = useState(DEFAULT_FREE_THRESHOLD);
+  const shippingCost = subtotal >= freeThreshold ? 0 : shippingFee;
 
   const [step,         setStep]         = useState(1);
   const [address,     setAddress]      = useState({
@@ -386,6 +388,16 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) navigate('/cart');
   }, [items, navigate]);
+
+  /* fetch live shipping settings from backend */
+  useEffect(() => {
+    api.get('/orders/shipping-cost')
+      .then(r => {
+        if (r.data.fee       != null) setShippingFee(r.data.fee);
+        if (r.data.threshold != null) setFreeThreshold(r.data.threshold);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
 
   /* auto-fill from saved default address when user is logged in */
   useEffect(() => {
@@ -435,10 +447,15 @@ export default function CheckoutPage() {
     setOrderLoading(true);
     setOrderError('');
     try {
-      /* create order */
+      /* create order — include per-item color/size selections from cart */
+      const items_meta = items
+        .filter(i => i.color || i.size)
+        .map(i => ({ product_id: i.product_id, color: i.color || undefined, size: i.size || undefined }));
+
       const orderRes = await api.post('/orders', {
         shipping_address: address,
         coupon_code:      couponCode || undefined,
+        items_meta:       items_meta.length ? items_meta : undefined,
         notes:            undefined,
       });
       const newOrderId = orderRes.data.order_id;

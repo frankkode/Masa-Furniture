@@ -25,7 +25,9 @@ app.use('/api/cart',     require('./routes/cart'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/orders',   require('./routes/orders'));
 app.use('/api/payments', require('./routes/payments'));
-app.use('/api/admin',   require('./routes/admin'));
+app.use('/api/admin',         require('./routes/admin'));
+app.use('/api/contact',       require('./routes/contact'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

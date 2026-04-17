@@ -112,8 +112,9 @@ function OverviewTab({ user }) {
    Orders Tab
 ═══════════════════════════════════════════════════════════════ */
 function OrdersTab() {
-  const [orders,  setOrders]  = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,      setOrders]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [expanded,    setExpanded]    = useState({}); // { [orderId]: items[] | 'loading' }
 
   useEffect(() => {
     api.get('/orders')
@@ -121,6 +122,20 @@ function OrdersTab() {
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const toggleExpand = async (orderId) => {
+    if (expanded[orderId]) {
+      setExpanded(prev => { const n = {...prev}; delete n[orderId]; return n; });
+      return;
+    }
+    setExpanded(prev => ({ ...prev, [orderId]: 'loading' }));
+    try {
+      const res = await api.get(`/orders/${orderId}`);
+      setExpanded(prev => ({ ...prev, [orderId]: res.data.items || [] }));
+    } catch {
+      setExpanded(prev => { const n = {...prev}; delete n[orderId]; return n; });
+    }
+  };
 
   if (loading) return <div className="space-y-3">{[0,1,2,3].map(i=><div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse"/>)}</div>;
 
@@ -138,36 +153,100 @@ function OrdersTab() {
     );
   }
 
+  const canReview = (order) => ['delivered', 'shipped', 'processing', 'confirmed'].includes(order.status);
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-masa-dark">Order History</h2>
-      {orders.map(order => (
-        <div key={order.id} className="border border-masa-border rounded-xl overflow-hidden">
-          <div className="bg-masa-light px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Order</p>
-                <p className="text-sm font-bold text-masa-dark">#{String(order.id).padStart(5,'0')}</p>
+      {orders.map(order => {
+        const items = expanded[order.id];
+        const isOpen = !!items;
+        return (
+          <div key={order.id} className="border border-masa-border rounded-xl overflow-hidden">
+            {/* order header */}
+            <div className="bg-masa-light px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-4">
+                <div>
+                  <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Order</p>
+                  <p className="text-sm font-bold text-masa-dark">#{String(order.id).padStart(5,'0')}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Date</p>
+                  <p className="text-sm text-masa-dark">{formatDate(order.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Total</p>
+                  <p className="text-sm font-bold text-masa-accent">€{Number(order.total_price).toFixed(2)}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Date</p>
-                <p className="text-sm text-masa-dark">{formatDate(order.created_at)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-masa-gray uppercase tracking-widest font-semibold">Total</p>
-                <p className="text-sm font-bold text-masa-accent">${Number(order.total_price).toFixed(2)}</p>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={order.status} />
+                <button onClick={() => toggleExpand(order.id)}
+                  className="text-xs font-semibold text-masa-accent hover:underline flex items-center gap-1">
+                  {isOpen ? 'Hide items' : 'View items'}
+                  <svg className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={order.status} />
-              <Link to={`/order/${order.id}`} className="text-xs font-semibold text-masa-accent hover:underline">Details →</Link>
-            </div>
+
+            {/* collapsed summary */}
+            {!isOpen && (
+              <div className="px-4 py-2.5">
+                <p className="text-sm text-masa-gray">{order.item_count || 0} item{order.item_count !== 1 ? 's' : ''}</p>
+              </div>
+            )}
+
+            {/* expanded items */}
+            {isOpen && (
+              <div className="px-4 py-3 space-y-3">
+                {items === 'loading' ? (
+                  <div className="space-y-2">{[0,1,2].map(i=><div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
+                ) : items.length === 0 ? (
+                  <p className="text-sm text-masa-gray py-2">No items found.</p>
+                ) : (
+                  items.map(item => (
+                    <div key={item.id} className="flex items-center gap-3 text-sm py-2 border-b border-masa-border last:border-0">
+                      {/* thumbnail */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-masa-light shrink-0">
+                        {item.image_url
+                          ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover"/>
+                          : <div className="w-full h-full flex items-center justify-center text-lg">🛋️</div>
+                        }
+                      </div>
+                      {/* info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-masa-dark truncate">{item.name}</p>
+                        <div className="flex items-center gap-3 text-xs text-masa-gray mt-0.5">
+                          <span>Qty: {item.quantity}</span>
+                          <span>€{Number(item.unit_price).toFixed(2)}</span>
+                          {item.selected_color && <span>Color: {item.selected_color}</span>}
+                          {item.selected_size  && <span>Size: {item.selected_size}</span>}
+                        </div>
+                      </div>
+                      {/* review link */}
+                      {canReview(order) && (
+                        <Link
+                          to={`/product/${item.product_id}?tab=reviews`}
+                          className="shrink-0 text-xs font-semibold text-white bg-masa-accent hover:bg-masa-accent/90
+                                     px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                          </svg>
+                          Review
+                        </Link>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-          <div className="px-4 py-2.5">
-            <p className="text-sm text-masa-gray">{order.item_count || 0} item{order.item_count !== 1 ? 's' : ''}</p>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1058,7 +1137,73 @@ function AdminProductsPanel() {
   );
 }
 
-/* ── AdminTab (Orders + Products tabs) ───────────────────── */
+/* ── ShippingSettingsPanel ────────────────────────────────── */
+function ShippingSettingsPanel() {
+  const [form,    setForm]    = useState({ shipping_fee: '', free_shipping_threshold: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
+  const [msg,     setMsg]     = useState('');
+  const [err,     setErr]     = useState('');
+
+  useEffect(() => {
+    api.get('/admin/shipping-settings')
+      .then(r => setForm({
+        shipping_fee:            String(r.data.shipping_fee),
+        free_shipping_threshold: String(r.data.free_shipping_threshold),
+      }))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async e => {
+    e.preventDefault();
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      await api.patch('/admin/shipping-settings', {
+        shipping_fee:            parseFloat(form.shipping_fee),
+        free_shipping_threshold: parseFloat(form.free_shipping_threshold),
+      });
+      setMsg('Shipping settings saved.');
+    } catch { setErr('Failed to save settings.'); }
+    finally { setSaving(false); }
+  };
+
+  if (loading) return <div className="h-24 bg-gray-100 rounded-xl animate-pulse"/>;
+
+  return (
+    <div className="max-w-sm">
+      <h3 className="font-bold text-masa-dark mb-4">Shipping Settings</h3>
+      {msg && <div className="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">{msg}</div>}
+      {err && <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{err}</div>}
+      <form onSubmit={handleSave} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-masa-dark mb-1.5">
+            Shipping Fee (€)
+          </label>
+          <input type="number" min="0" step="0.01" required value={form.shipping_fee}
+            onChange={e => setForm(p => ({ ...p, shipping_fee: e.target.value }))}
+            className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors"/>
+          <p className="text-xs text-masa-gray mt-1">Charged when order total is below the free threshold.</p>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-masa-dark mb-1.5">
+            Free Shipping Threshold (€)
+          </label>
+          <input type="number" min="0" step="0.01" required value={form.free_shipping_threshold}
+            onChange={e => setForm(p => ({ ...p, free_shipping_threshold: e.target.value }))}
+            className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors"/>
+          <p className="text-xs text-masa-gray mt-1">Orders at or above this amount get free shipping.</p>
+        </div>
+        <button type="submit" disabled={saving}
+          className="btn-primary py-2.5 px-6 text-sm disabled:opacity-60">
+          {saving ? 'Saving…' : 'Save Settings'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ── AdminTab (Orders + Products + Settings tabs) ────────── */
 function AdminTab() {
   const [activeTab, setActiveTab] = useState('orders');
   const [stats,     setStats]     = useState(null);
@@ -1128,10 +1273,11 @@ function AdminTab() {
       )}
 
       {/* sub-tab switcher */}
-      <div className="flex gap-1 bg-masa-light p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-masa-light p-1 rounded-xl w-fit flex-wrap">
         {[
           { id: 'orders',   label: 'Orders',   icon: '📦' },
           { id: 'products', label: 'Products', icon: '🛋️' },
+          { id: 'settings', label: 'Settings', icon: '⚙️' },
         ].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all
@@ -1230,6 +1376,13 @@ function AdminTab() {
 
       {/* ── Products panel ── */}
       {activeTab === 'products' && <AdminProductsPanel />}
+
+      {/* ── Settings panel ── */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <ShippingSettingsPanel />
+        </div>
+      )}
     </div>
   );
 }

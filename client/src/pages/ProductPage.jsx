@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -80,8 +80,9 @@ function ProductSkeleton() {
    ProductPage
 ════════════════════════════════════════════════════════════════ */
 export default function ProductPage() {
-  const { id }       = useParams();
-  const navigate     = useNavigate();
+  const { id }           = useParams();
+  const navigate         = useNavigate();
+  const [searchParams]   = useSearchParams();
   const { addItem }  = useCart();
   const { user }     = useAuth();
 
@@ -97,7 +98,10 @@ export default function ProductPage() {
   const [qty,         setQty]         = useState(1);
   const [adding,      setAdding]      = useState(false);
   const [addedMsg,    setAddedMsg]    = useState(false);
-  const [activeTab,   setActiveTab]   = useState('description'); // description | specs | reviews
+  // auto-switch to reviews tab if ?tab=reviews is in the URL (e.g. from "Write Review" link in orders)
+  const [activeTab,   setActiveTab]   = useState(
+    searchParams.get('tab') === 'reviews' ? 'reviews' : 'description'
+  ); // description | specs | reviews
 
   /* ── review form state ── */
   const [reviewRating, setReviewRating] = useState(0);

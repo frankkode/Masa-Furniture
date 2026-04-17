@@ -145,12 +145,22 @@ CREATE TABLE IF NOT EXISTS "order" (
 );
 
 CREATE TABLE IF NOT EXISTS order_item (
-  id          INTEGER  PRIMARY KEY AUTOINCREMENT,
-  order_id    INTEGER  NOT NULL REFERENCES "order"(id) ON DELETE CASCADE,
-  product_id  INTEGER  NOT NULL REFERENCES product(id) ON DELETE RESTRICT,
-  quantity    INTEGER  NOT NULL,
-  unit_price  REAL     NOT NULL
+  id          INTEGER       PRIMARY KEY AUTOINCREMENT,
+  order_id    INTEGER       NOT NULL REFERENCES "order"(id) ON DELETE CASCADE,
+  product_id  INTEGER       NOT NULL REFERENCES product(id) ON DELETE RESTRICT,
+  quantity    INTEGER       NOT NULL,
+  unit_price  REAL          NOT NULL,
+  color       VARCHAR(100),
+  size        VARCHAR(100)
 );
+
+-- Store global shop settings (key/value)
+CREATE TABLE IF NOT EXISTS settings (
+  key   VARCHAR(100) PRIMARY KEY,
+  value TEXT         NOT NULL
+);
+INSERT OR IGNORE INTO settings (key, value) VALUES ('shipping_fee',            '9.90');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('free_shipping_threshold', '100');
 
 CREATE TABLE IF NOT EXISTS payment (
   id              INTEGER  PRIMARY KEY AUTOINCREMENT,
@@ -197,8 +207,10 @@ CREATE TABLE IF NOT EXISTS wishlist_item (
 CREATE TABLE IF NOT EXISTS notification (
   id          INTEGER     PRIMARY KEY AUTOINCREMENT,
   user_id     INTEGER     NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+  title       VARCHAR(200) NOT NULL DEFAULT '',
   message     TEXT        NOT NULL,
   type        VARCHAR(50) NOT NULL DEFAULT 'info',
+  link        VARCHAR(500),
   is_read     INTEGER     NOT NULL DEFAULT 0,
   created_at  DATETIME    NOT NULL DEFAULT (datetime('now'))
 );

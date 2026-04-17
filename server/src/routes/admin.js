@@ -2,6 +2,7 @@ const router      = require('express').Router();
 const db          = require('../db/database');
 const requireAuth = require('../middleware/auth');
 const { multerMiddleware, uploadImage } = require('../middleware/upload');
+const { send, orderStatusHtml, ADMIN_EMAIL } = require('../services/mailer');
 
 /* ── admin-only guard ─────────────────────────────────────── */
 function requireAdmin(req, res, next) {
@@ -77,14 +78,67 @@ router.get('/orders/:id', (req, res) => {
 /* ── PATCH /api/admin/orders/:id/status ──────────────────── */
 const VALID_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
 
-router.patch('/orders/:id/status', (req, res) => {
+router.patch('/orders/:id/status', async (req, res) => {
   const { status } = req.body;
   if (!VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: 'Invalid status', valid: VALID_STATUSES });
   }
-  const result = db.prepare('UPDATE "order" SET status = ? WHERE id = ?').run(status, req.params.id);
-  if (!result.changes) return res.status(404).json({ error: 'Order not found' });
+  const order = db.prepare('SELECT * FROM "order" WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  db.prepare('UPDATE "order" SET status = ?, updated_at = datetime(\'now\') WHERE id = ?')
+    .run(status, req.params.id);
+
+  const updatedOrder = db.prepare('SELECT * FROM "order" WHERE id = ?').get(req.params.id);
+  const user = db.prepare('SELECT * FROM user WHERE id = ?').get(order.user_id);
+
+  const statusLabels = { pending:'Pending',confirmed:'Confirmed',processing:'Processing',shipped:'Shipped',delivered:'Delivered',cancelled:'Cancelled' };
+  const label = statusLabels[status] || status;
+
+  // In-app notification for user
+  db.prepare(`INSERT INTO notification (user_id, title, message, type, link)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(order.user_id,
+      `Order ${label}`,
+      `Your order #${String(order.id).padStart(5,'0')} is now ${label.toLowerCase()}.`,
+      status === 'cancelled' ? 'warning' : status === 'delivered' ? 'success' : 'info',
+      `/dashboard/orders`);
+
+  // Email notification for user
+  if (user?.email) {
+    send({
+      to:      user.email,
+      subject: `Order #${String(order.id).padStart(5,'0')} — ${label}`,
+      html:    orderStatusHtml(updatedOrder),
+      text:    `Your order #${String(order.id).padStart(5,'0')} is now: ${label}`,
+    });
+  }
+
   res.json({ ok: true, status });
+});
+
+/* ── GET /api/admin/shipping-settings ───────────────────── */
+router.get('/shipping-settings', (req, res) => {
+  const fee       = db.prepare(`SELECT value FROM settings WHERE key='shipping_fee'`).get();
+  const threshold = db.prepare(`SELECT value FROM settings WHERE key='free_shipping_threshold'`).get();
+  res.json({
+    shipping_fee:            parseFloat(fee?.value       || 9.90),
+    free_shipping_threshold: parseFloat(threshold?.value || 100),
+  });
+});
+
+/* ── PATCH /api/admin/shipping-settings ─────────────────── */
+router.patch('/shipping-settings', (req, res) => {
+  const { shipping_fee, free_shipping_threshold } = req.body;
+  if (shipping_fee !== undefined) {
+    db.prepare(`INSERT INTO settings (key, value) VALUES ('shipping_fee',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+      .run(String(parseFloat(shipping_fee)));
+  }
+  if (free_shipping_threshold !== undefined) {
+    db.prepare(`INSERT INTO settings (key, value) VALUES ('free_shipping_threshold',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+      .run(String(parseFloat(free_shipping_threshold)));
+  }
+  res.json({ ok: true });
 });
 
 /* ── POST /api/admin/upload ──────────────────────────────────
