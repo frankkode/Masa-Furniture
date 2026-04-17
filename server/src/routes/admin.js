@@ -1,6 +1,7 @@
 const router      = require('express').Router();
 const db          = require('../db/database');
 const requireAuth = require('../middleware/auth');
+const { multerMiddleware, uploadImage } = require('../middleware/upload');
 
 /* ── admin-only guard ─────────────────────────────────────── */
 function requireAdmin(req, res, next) {
@@ -84,6 +85,18 @@ router.patch('/orders/:id/status', (req, res) => {
   const result = db.prepare('UPDATE "order" SET status = ? WHERE id = ?').run(status, req.params.id);
   if (!result.changes) return res.status(404).json({ error: 'Order not found' });
   res.json({ ok: true, status });
+});
+
+/* ── POST /api/admin/upload ──────────────────────────────────
+   Accepts multipart/form-data with field name "image".
+   Returns { url } — local path in dev, Vercel Blob URL in prod.
+   Max 5 MB, images only.
+──────────────────────────────────────────────────────────── */
+router.post('/upload', (req, res, next) => {
+  multerMiddleware(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    uploadImage(req, res);
+  });
 });
 
 /* ── GET /api/admin/categories (for product form dropdown) ─── */

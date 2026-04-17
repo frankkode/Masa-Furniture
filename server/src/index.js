@@ -1,12 +1,17 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
+const path    = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // middleware
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+
+// Serve uploaded product images
+// In production swap this for Vercel Blob CDN URLs (no static serving needed)
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 // raw body needed for Stripe webhook signature verification
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));

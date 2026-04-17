@@ -522,6 +522,119 @@ const EMPTY_PRODUCT = {
   is_active: true, is_featured: false,
 };
 
+/* ── ImageUploadField ─────────────────────────────────────
+   Lets admin pick a local file (uploaded to /api/admin/upload)
+   or fall back to pasting a URL.
+   In production, the server swaps disk storage for Vercel Blob;
+   the returned URL just changes — this component stays the same.
+──────────────────────────────────────────────────────────── */
+function ImageUploadField({ value, onChange }) {
+  const [tab,        setTab]        = useState('upload'); // 'upload' | 'url'
+  const [uploading,  setUploading]  = useState(false);
+  const [uploadErr,  setUploadErr]  = useState('');
+  const [dragging,   setDragging]   = useState(false);
+  const fileRef = useState(null);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setUploadErr('Please select an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024)    { setUploadErr('Image must be under 5 MB.');    return; }
+    setUploadErr('');
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await api.post('/admin/upload', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      onChange(res.data.url);
+    } catch (e) {
+      setUploadErr(e.response?.data?.error || 'Upload failed. Try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onInputChange = (e) => handleFile(e.target.files[0]);
+  const onDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  return (
+    <div>
+      {/* tab switcher */}
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-xs font-semibold text-masa-dark mr-2">Primary Image</span>
+        {[['upload','📁 Upload file'],['url','🔗 Paste URL']].map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setTab(id)}
+            className={`px-3 py-1 text-xs rounded-full font-medium transition-colors
+              ${tab === id ? 'bg-masa-accent text-white' : 'bg-masa-light text-masa-gray hover:text-masa-dark'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'upload' ? (
+        <label
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+          className={`flex flex-col items-center justify-center gap-2 w-full py-6 border-2 border-dashed
+            rounded-xl cursor-pointer transition-colors
+            ${dragging ? 'border-masa-accent bg-masa-accent/5' : 'border-masa-border hover:border-masa-accent hover:bg-masa-light'}`}>
+          {uploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <svg className="w-6 h-6 animate-spin text-masa-accent" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              <span className="text-xs text-masa-gray">Uploading…</span>
+            </div>
+          ) : (
+            <>
+              <svg className="w-8 h-8 text-masa-gray" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p className="text-xs text-masa-gray text-center">
+                Drag & drop an image here, or <span className="text-masa-accent font-semibold">click to browse</span>
+              </p>
+              <p className="text-xs text-gray-400">JPEG, PNG, WebP, GIF — max 5 MB</p>
+            </>
+          )}
+          <input ref={fileRef[0]} type="file" accept="image/*" className="hidden" onChange={onInputChange}/>
+        </label>
+      ) : (
+        <input
+          className="w-full px-3 py-2 text-sm border border-masa-border rounded-xl focus:outline-none focus:border-masa-accent transition-colors"
+          value={value} onChange={e => onChange(e.target.value)}
+          placeholder="/products/chair.jpg or https://…"/>
+      )}
+
+      {uploadErr && (
+        <p className="mt-1.5 text-xs text-red-600">{uploadErr}</p>
+      )}
+
+      {/* preview */}
+      {value && (
+        <div className="mt-2 flex items-center gap-3">
+          <img src={value} alt="preview"
+            onError={e => e.target.style.display='none'}
+            className="h-20 w-20 object-cover rounded-xl border border-masa-border"/>
+          <div className="min-w-0">
+            <p className="text-xs text-masa-gray truncate">{value}</p>
+            <button type="button" onClick={() => onChange('')}
+              className="mt-1 text-xs text-red-500 hover:text-red-700 font-medium">
+              Remove image
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── ProductModal ─────────────────────────────────────────
    Used for both "Add" and "Edit" actions.
 ──────────────────────────────────────────────────────────── */
@@ -651,15 +764,11 @@ function ProductModal({ initial, categories, onSave, onCancel, saving }) {
             </div>
           </div>
 
-          {/* image url */}
-          <div>
-            <label className={lbl}>Primary Image URL</label>
-            <input className={inp} value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="/products/chair.jpg or https://…"/>
-            {form.image_url && (
-              <img src={form.image_url} alt="preview" onError={e => e.target.style.display='none'}
-                className="mt-2 h-24 w-24 object-cover rounded-xl border border-masa-border"/>
-            )}
-          </div>
+          {/* image — upload or URL */}
+          <ImageUploadField
+            value={form.image_url}
+            onChange={url => set('image_url', url)}
+          />
 
           {/* description */}
           <div>
