@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -122,15 +122,15 @@ function OrderSummary({ items, subtotal, shippingCost, discount, couponCode }) {
 }
 
 /* ── Step 1: Address form ──────────────────────────────────────── */
-function AddressStep({ address, onChange, onNext }) {
+function AddressStep({ address, onChange, onNext, savedAddrs = [], onSelectSaved }) {
   const fields = [
-    { key: 'full_name',    label: 'Full Name',    placeholder: 'Jane Smith',         required: true,  col: 2 },
-    { key: 'phone',        label: 'Phone',        placeholder: '+250 700 000 000',   required: false, col: 1 },
-    { key: 'street',       label: 'Street Address', placeholder: '123 KG 5 Ave',    required: true,  col: 2 },
-    { key: 'city',         label: 'City',         placeholder: 'Kigali',             required: true,  col: 1 },
-    { key: 'state',        label: 'Province / State', placeholder: 'Kigali City',   required: false, col: 1 },
-    { key: 'postal_code',  label: 'Postal Code',  placeholder: '00000',              required: false, col: 1 },
-    { key: 'country',      label: 'Country',      placeholder: 'Rwanda',             required: true,  col: 1 },
+    { key: 'full_name',    label: 'Full Name',       placeholder: 'Jane Smith',          required: true,  col: 2 },
+    { key: 'phone',        label: 'Phone',           placeholder: '+358 40 000 0000',    required: false, col: 1 },
+    { key: 'street',       label: 'Street Address',  placeholder: 'Mannerheimintie 10',  required: true,  col: 2 },
+    { key: 'city',         label: 'City',            placeholder: 'Helsinki',            required: true,  col: 1 },
+    { key: 'state',        label: 'Region',          placeholder: 'Uusimaa',             required: false, col: 1 },
+    { key: 'postal_code',  label: 'Postal Code',     placeholder: '00100',               required: false, col: 1 },
+    { key: 'country',      label: 'Country',         placeholder: 'Finland',             required: true,  col: 1 },
   ];
 
   const handleSubmit = e => {
@@ -141,6 +141,26 @@ function AddressStep({ address, onChange, onNext }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-masa-dark mb-5">Shipping Address</h2>
+
+      {/* saved address picker */}
+      {savedAddrs.length > 0 && (
+        <div className="mb-2">
+          <label className="block text-sm font-semibold text-masa-dark mb-1.5">Use a saved address</label>
+          <select
+            onChange={e => { if (e.target.value) onSelectSaved(Number(e.target.value)); }}
+            defaultValue=""
+            className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors bg-white"
+          >
+            <option value="">— Select saved address —</option>
+            {savedAddrs.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.full_name} · {a.street}, {a.city}{a.is_default ? ' (default)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         {fields.map(f => (
           <div key={f.key} className={f.col === 2 ? 'col-span-2' : 'col-span-1'}>
@@ -340,6 +360,7 @@ function PaymentForm({ clientSecret, orderId, onBack, onSuccess }) {
 ════════════════════════════════════════════════════════════════ */
 export default function CheckoutPage() {
   const { items, total: subtotal, clearCart } = useCart();
+  const { user }  = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
 
@@ -352,21 +373,59 @@ export default function CheckoutPage() {
 
   const [step,         setStep]         = useState(1);
   const [address,     setAddress]      = useState({
-    full_name: '', phone: '', street: '', city: '',
-    state: '', postal_code: '', country: 'Rwanda',
+    full_name: user?.username || '', phone: '', street: '', city: '',
+    state: '', postal_code: '', country: 'Finland',
   });
   const [clientSecret, setClientSecret] = useState('');
   const [orderId,      setOrderId]      = useState(null);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError,   setOrderError]   = useState('');
+  const [savedAddrs,   setSavedAddrs]   = useState([]);
 
   /* redirect if cart is empty */
   useEffect(() => {
     if (items.length === 0) navigate('/cart');
   }, [items, navigate]);
 
+  /* auto-fill from saved default address when user is logged in */
+  useEffect(() => {
+    if (!user) return;
+    api.get('/auth/addresses')
+      .then(r => {
+        const addrs = r.data.addresses || [];
+        setSavedAddrs(addrs);
+        const def = addrs.find(a => a.is_default) || addrs[0];
+        if (def) {
+          setAddress({
+            full_name:   def.full_name   || user?.username || '',
+            phone:       def.phone       || '',
+            street:      def.street      || '',
+            city:        def.city        || '',
+            state:       def.state       || '',
+            postal_code: def.postal_code || '',
+            country:     def.country     || 'Finland',
+          });
+        }
+      })
+      .catch(() => {});
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleAddressChange = (key, val) =>
     setAddress(prev => ({ ...prev, [key]: val }));
+
+  const handleSelectSaved = useCallback(id => {
+    const a = savedAddrs.find(x => x.id === id);
+    if (!a) return;
+    setAddress({
+      full_name:   a.full_name   || '',
+      phone:       a.phone       || '',
+      street:      a.street      || '',
+      city:        a.city        || '',
+      state:       a.state       || '',
+      postal_code: a.postal_code || '',
+      country:     a.country     || 'Finland',
+    });
+  }, [savedAddrs]);
 
   /* Step 1 → 2 */
   const handleAddressNext = () => setStep(2);
@@ -442,6 +501,8 @@ export default function CheckoutPage() {
                 address={address}
                 onChange={handleAddressChange}
                 onNext={handleAddressNext}
+                savedAddrs={savedAddrs}
+                onSelectSaved={handleSelectSaved}
               />
             )}
             {step === 2 && (

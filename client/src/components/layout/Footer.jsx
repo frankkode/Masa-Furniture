@@ -1,24 +1,25 @@
 import { Link } from 'react-router-dom';
 
-/* ── Figma-accurate footer ──────────────────────────────────────
-   Light gray background (#f5f5f5), 4 columns:
+/* ── Footer ────────────────────────────────────────────────────
+   4 columns:
      1. Brand + description
-     2. Services  (orange header) — Email Marketing / Campaigns / Branding
-     3. Furniture (orange header) — Beds / Chair / All
-     4. Follow Us (orange header) — Facebook / Twitter / Instagram with icons
+     2. Company  — About / Contact / Shop
+     3. Furniture — Beds / Chair / All
+     4. Follow Us — Facebook / Twitter / Instagram
    Bottom bar: Copyright © | Terms & Conditions | Privacy Policy
 ──────────────────────────────────────────────────────────────── */
 
-const servicesLinks = [
-  { label: 'Email Marketing', to: '/shop' },
-  { label: 'Campaigns',       to: '/shop' },
-  { label: 'Branding',        to: '/shop' },
+const companyLinks = [
+  { label: 'About Us',  to: '/about'   },
+  { label: 'Contact',   to: '/contact' },
+  { label: 'Shop',      to: '/shop'    },
+  { label: 'Dashboard', to: '/dashboard' },
 ];
 
 const furnitureLinks = [
-  { label: 'Beds',  to: '/shop/beds'   },
-  { label: 'Chair', to: '/shop/chairs' },
-  { label: 'All',   to: '/shop'        },
+  { label: 'Beds',   to: '/shop/beds'   },
+  { label: 'Chairs', to: '/shop/chair'  },
+  { label: 'All',    to: '/shop'        },
 ];
 
 export default function Footer() {
@@ -34,16 +35,16 @@ export default function Footer() {
             Masa
           </Link>
           <p className="text-masa-gray text-sm leading-relaxed">
-            The advantage of hiring a workspace with us is that givees you comfortable service
-            and all-around facilities.
+            Scandinavian furniture crafted to last a lifetime.
+            Designed in Helsinki, delivered to your door.
           </p>
         </div>
 
-        {/* ② Services */}
+        {/* ② Company */}
         <div>
-          <h3 className="text-sm font-semibold text-masa-accent mb-5">Services</h3>
+          <h3 className="text-sm font-semibold text-masa-accent mb-5">Company</h3>
           <ul className="flex flex-col gap-3">
-            {servicesLinks.map(link => (
+            {companyLinks.map(link => (
               <li key={link.label}>
                 <Link to={link.to}
                   className="text-sm text-masa-gray hover:text-masa-dark transition-colors">
@@ -69,14 +70,13 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* ④ Follow Us — icon + text links */}
+        {/* ④ Follow Us */}
         <div>
           <h3 className="text-sm font-semibold text-masa-accent mb-5">Follow Us</h3>
           <ul className="flex flex-col gap-3">
             <li>
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2.5 text-sm text-masa-gray hover:text-masa-dark transition-colors">
-                {/* Facebook icon */}
                 <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
                 </svg>
@@ -86,7 +86,6 @@ export default function Footer() {
             <li>
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2.5 text-sm text-masa-gray hover:text-masa-dark transition-colors">
-                {/* Twitter/X icon */}
                 <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
@@ -96,7 +95,6 @@ export default function Footer() {
             <li>
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2.5 text-sm text-masa-gray hover:text-masa-dark transition-colors">
-                {/* Instagram icon */}
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={1.75}>
                   <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
@@ -113,8 +111,10 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-gray-200">
         <div className="container-main py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-masa-gray">
-          <span>Copyright © {new Date().getFullYear()}</span>
-          <div className="flex gap-8">
+          <span>Copyright © {new Date().getFullYear()} Masa Furniture. All rights reserved.</span>
+          <div className="flex gap-6">
+            <Link to="/about"   className="hover:text-masa-dark transition-colors">About</Link>
+            <Link to="/contact" className="hover:text-masa-dark transition-colors">Contact</Link>
             <Link to="/terms"   className="hover:text-masa-dark transition-colors">Terms &amp; Conditions</Link>
             <Link to="/privacy" className="hover:text-masa-dark transition-colors">Privacy Policy</Link>
           </div>

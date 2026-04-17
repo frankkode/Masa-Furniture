@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCart }     from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useAuth }     from '../context/AuthContext';
 
 export function StarRating({ rating = 0, count = 0, size = 'sm' }) {
   const stars = Math.round(rating);
@@ -23,6 +25,44 @@ export function StarRating({ rating = 0, count = 0, size = 'sm' }) {
     </span>
   );
 }
+
+/* ── shared heart button ─────────────────────────────────────── */
+function WishlistBtn({ productId, className = '' }) {
+  const { user }                  = useAuth();
+  const { wishlistIds, toggle }   = useWishlist();
+  const navigate                  = useNavigate();
+  const liked = wishlistIds.has(Number(productId));
+
+  const handleClick = async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate('/login'); return; }
+    await toggle(productId);
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      aria-label={liked ? 'Remove from wishlist' : 'Add to wishlist'}
+      className={`w-8 h-8 rounded-full bg-white shadow flex items-center justify-center
+                  transition-all hover:scale-110 active:scale-95 ${className}`}
+    >
+      <svg
+        className={`w-4 h-4 transition-colors ${liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+        fill={liked ? 'currentColor' : 'none'}
+        viewBox="0 0 20 20"
+        stroke="currentColor"
+        strokeWidth={liked ? 0 : 1.5}
+      >
+        <path fillRule="evenodd"
+          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+          clipRule="evenodd" />
+      </svg>
+    </button>
+  );
+}
+
+export { WishlistBtn };
 
 /* ── grid card (default) ─────────────────────────────────────── */
 export default function ProductCard({ product, variant = 'grid' }) {
@@ -66,9 +106,12 @@ export default function ProductCard({ product, variant = 'grid' }) {
           )}
         </div>
         <div className="shrink-0 flex flex-col items-end gap-2">
-          <span className="text-masa-accent font-bold text-lg">
-            ${Number(product.price).toFixed(2)}
-          </span>
+          <div className="flex items-center gap-2">
+            <WishlistBtn productId={product.id} />
+            <span className="text-masa-accent font-bold text-lg">
+              ${Number(product.price).toFixed(2)}
+            </span>
+          </div>
           <button
             onClick={handleAdd}
             disabled={adding || loading}
@@ -95,7 +138,12 @@ export default function ProductCard({ product, variant = 'grid' }) {
 
   /* grid variant */
   return (
-    <div className="card group flex flex-col overflow-hidden">
+    <div className="card group flex flex-col overflow-hidden relative">
+      {/* wishlist heart — top-right corner of image */}
+      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <WishlistBtn productId={product.id} />
+      </div>
+
       <Link
         to={`/product/${product.id}`}
         className="block overflow-hidden bg-masa-light aspect-[4/3]"

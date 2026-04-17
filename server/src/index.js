@@ -25,4 +25,9 @@ app.use('/api/admin',   require('./routes/admin'));
 // health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Only start the HTTP server when run directly (not when imported by tests)
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;

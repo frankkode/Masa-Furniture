@@ -100,4 +100,108 @@ router.post('/change-password', requireAuth, async (req, res) => {
   res.json({ message: 'Password updated' });
 });
 
+// GET /api/auth/profile — return user + profile data (phone, etc.)
+router.get('/profile', requireAuth, (req, res) => {
+  const user    = db.prepare('SELECT * FROM user WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const profile = db.prepare('SELECT * FROM user_profile WHERE user_id = ?').get(req.user.id);
+  res.json({
+    user:    safeUser(user),
+    profile: profile || {},
+  });
+});
+
+// ── Address routes ────────────────────────────────────────────
+
+// GET /api/auth/addresses
+router.get('/addresses', requireAuth, (req, res) => {
+  const addresses = db.prepare(
+    'SELECT * FROM address WHERE user_id = ? ORDER BY is_default DESC, id DESC'
+  ).all(req.user.id);
+  res.json({ addresses });
+});
+
+// POST /api/auth/addresses
+router.post('/addresses', requireAuth, (req, res) => {
+  const { full_name, phone, street, city, state, country, postal_code, type, is_default } = req.body;
+  if (!full_name || !street || !city || !country) {
+    return res.status(400).json({ error: 'full_name, street, city and country are required' });
+  }
+  // if new address is default, unset any previous default
+  if (is_default) {
+    db.prepare('UPDATE address SET is_default = 0 WHERE user_id = ?').run(req.user.id);
+  }
+  const result = db.prepare(`
+    INSERT INTO address (user_id, full_name, phone, street, city, state, country, postal_code, type, is_default)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.user.id,
+    full_name,
+    phone        || null,
+    street,
+    city,
+    state        || null,
+    country,
+    postal_code  || null,
+    type         || 'shipping',
+    is_default   ? 1 : 0,
+  );
+  const address = db.prepare('SELECT * FROM address WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json({ address });
+});
+
+// PATCH /api/auth/addresses/:id
+router.patch('/addresses/:id', requireAuth, (req, res) => {
+  const addr = db.prepare('SELECT * FROM address WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!addr) return res.status(404).json({ error: 'Address not found' });
+
+  const { full_name, phone, street, city, state, country, postal_code, type, is_default } = req.body;
+  if (is_default) {
+    db.prepare('UPDATE address SET is_default = 0 WHERE user_id = ?').run(req.user.id);
+  }
+  db.prepare(`
+    UPDATE address SET
+      full_name   = COALESCE(?, full_name),
+      phone       = COALESCE(?, phone),
+      street      = COALESCE(?, street),
+      city        = COALESCE(?, city),
+      state       = COALESCE(?, state),
+      country     = COALESCE(?, country),
+      postal_code = COALESCE(?, postal_code),
+      type        = COALESCE(?, type),
+      is_default  = COALESCE(?, is_default)
+    WHERE id = ? AND user_id = ?
+  `).run(
+    full_name   ?? null,
+    phone       ?? null,
+    street      ?? null,
+    city        ?? null,
+    state       ?? null,
+    country     ?? null,
+    postal_code ?? null,
+    type        ?? null,
+    is_default !== undefined ? (is_default ? 1 : 0) : null,
+    req.params.id, req.user.id,
+  );
+  const updated = db.prepare('SELECT * FROM address WHERE id = ?').get(req.params.id);
+  res.json({ address: updated });
+});
+
+// DELETE /api/auth/addresses/:id
+router.delete('/addresses/:id', requireAuth, (req, res) => {
+  const addr = db.prepare('SELECT * FROM address WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!addr) return res.status(404).json({ error: 'Address not found' });
+  db.prepare('DELETE FROM address WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  res.json({ message: 'Address deleted' });
+});
+
+// POST /api/auth/addresses/:id/set-default
+router.post('/addresses/:id/set-default', requireAuth, (req, res) => {
+  const addr = db.prepare('SELECT * FROM address WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!addr) return res.status(404).json({ error: 'Address not found' });
+  db.prepare('UPDATE address SET is_default = 0 WHERE user_id = ?').run(req.user.id);
+  db.prepare('UPDATE address SET is_default = 1 WHERE id = ?').run(req.params.id);
+  res.json({ message: 'Default address updated' });
+});
+
 module.exports = router;

@@ -230,6 +230,45 @@ function WishlistTab() {
 /* ═══════════════════════════════════════════════════════════════
    Profile Tab
 ═══════════════════════════════════════════════════════════════ */
+const EMPTY_ADDR = { full_name: '', phone: '', street: '', city: '', state: '', country: 'Finland', postal_code: '', is_default: false };
+
+function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel, saving }) {
+  const [form, setForm] = useState(initial);
+  const f = key => e => setForm(p => ({ ...p, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="space-y-3 bg-masa-light rounded-xl p-4">
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { key:'full_name',   label:'Full Name',      col:2, required:true },
+          { key:'phone',       label:'Phone',           col:1 },
+          { key:'street',      label:'Street',          col:2, required:true },
+          { key:'city',        label:'City',            col:1, required:true },
+          { key:'state',       label:'State / Region',  col:1 },
+          { key:'postal_code', label:'Postal Code',     col:1 },
+          { key:'country',     label:'Country',         col:1, required:true },
+        ].map(field => (
+          <div key={field.key} className={field.col===2 ? 'col-span-2' : ''}>
+            <label className="text-xs font-semibold text-masa-dark block mb-1">{field.label}</label>
+            <input type="text" required={field.required} value={form[field.key]||''}
+              onChange={f(field.key)}
+              className="w-full border border-masa-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-masa-accent"/>
+          </div>
+        ))}
+      </div>
+      <label className="flex items-center gap-2 text-sm text-masa-dark cursor-pointer">
+        <input type="checkbox" checked={!!form.is_default} onChange={f('is_default')} className="accent-masa-accent"/>
+        Set as default address
+      </label>
+      <div className="flex gap-2 pt-1">
+        <button type="submit" disabled={saving} className="btn-primary py-2 px-5 text-sm disabled:opacity-60">
+          {saving ? 'Saving…' : 'Save Address'}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-outline py-2 px-5 text-sm">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
 function ProfileTab({ user }) {
   const { logout } = useAuth();
   const navigate   = useNavigate();
@@ -239,11 +278,12 @@ function ProfileTab({ user }) {
   const [profileErr, setProfileErr] = useState('');
   const [savingProf, setSavingProf] = useState(false);
 
-  const [pwdForm,  setPwdForm]  = useState({ current: '', next: '', confirm: '' });
-  const [pwdMsg,   setPwdMsg]  = useState('');
-  const [pwdErr,   setPwdErr]  = useState('');
-  const [savingPwd,setSavingPwd]= useState(false);
-  const [showPwd,  setShowPwd]  = useState(false);
+  // load phone from server on mount
+  useEffect(() => {
+    api.get('/auth/profile')
+      .then(r => setProfile({ username: r.data.user?.username || user?.username || '', phone: r.data.profile?.phone || '' }))
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveProfile = async e => {
     e.preventDefault(); setSavingProf(true); setProfileMsg(''); setProfileErr('');
@@ -253,6 +293,13 @@ function ProfileTab({ user }) {
     } catch(err) { setProfileErr(err.response?.data?.error || 'Could not save profile.'); }
     finally { setSavingProf(false); }
   };
+
+  // ── password ────────────────────────────────────────────────
+  const [pwdForm,  setPwdForm]  = useState({ current: '', next: '', confirm: '' });
+  const [pwdMsg,   setPwdMsg]   = useState('');
+  const [pwdErr,   setPwdErr]   = useState('');
+  const [savingPwd,setSavingPwd]= useState(false);
+  const [showPwd,  setShowPwd]  = useState(false);
 
   const handleChangePassword = async e => {
     e.preventDefault(); setPwdMsg(''); setPwdErr('');
@@ -266,10 +313,56 @@ function ProfileTab({ user }) {
     finally { setSavingPwd(false); }
   };
 
+  // ── addresses ───────────────────────────────────────────────
+  const [addresses,    setAddresses]    = useState([]);
+  const [addrLoading,  setAddrLoading]  = useState(true);
+  const [showAddrForm, setShowAddrForm] = useState(false);
+  const [editingAddr,  setEditingAddr]  = useState(null);
+  const [savingAddr,   setSavingAddr]   = useState(false);
+  const [addrMsg,      setAddrMsg]      = useState('');
+
+  const loadAddresses = () => {
+    setAddrLoading(true);
+    api.get('/auth/addresses')
+      .then(r => setAddresses(r.data.addresses || []))
+      .catch(() => setAddresses([]))
+      .finally(() => setAddrLoading(false));
+  };
+  useEffect(() => { loadAddresses(); }, []);
+
+  const handleSaveAddr = async (form) => {
+    setSavingAddr(true); setAddrMsg('');
+    try {
+      if (editingAddr) {
+        await api.patch(`/auth/addresses/${editingAddr.id}`, form);
+        setAddrMsg('Address updated.');
+      } else {
+        await api.post('/auth/addresses', form);
+        setAddrMsg('Address saved.');
+      }
+      setShowAddrForm(false); setEditingAddr(null);
+      loadAddresses();
+    } catch(err) { setAddrMsg(err.response?.data?.error || 'Could not save address.'); }
+    finally { setSavingAddr(false); }
+  };
+
+  const handleDeleteAddr = async id => {
+    if (!window.confirm('Delete this address?')) return;
+    await api.delete(`/auth/addresses/${id}`).catch(() => {});
+    setAddrMsg('Address deleted.');
+    loadAddresses();
+  };
+
+  const handleSetDefault = async id => {
+    await api.post(`/auth/addresses/${id}/set-default`).catch(() => {});
+    loadAddresses();
+  };
+
   return (
     <div className="space-y-8 max-w-lg">
       <h2 className="text-xl font-bold text-masa-dark">Profile Settings</h2>
 
+      {/* avatar row */}
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-full bg-masa-accent text-white flex items-center justify-center text-2xl font-bold shrink-0">
           {(user?.username || 'U')[0].toUpperCase()}
@@ -277,25 +370,29 @@ function ProfileTab({ user }) {
         <div>
           <p className="font-semibold text-masa-dark">{user?.username}</p>
           <p className="text-sm text-masa-gray">{user?.email}</p>
+          {user?.is_staff && (
+            <span className="text-xs bg-masa-accent text-white px-2 py-0.5 rounded-full mt-1 inline-block">Admin</span>
+          )}
         </div>
       </div>
 
-      {/* profile form */}
+      {/* personal info form */}
       <form onSubmit={handleSaveProfile} className="space-y-4">
         <h3 className="font-bold text-masa-dark border-b border-masa-border pb-2">Personal Info</h3>
         {profileMsg && <div className="text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm">{profileMsg}</div>}
         {profileErr && <p className="text-red-500 text-sm">{profileErr}</p>}
-        {[
-          { label: 'Username', key: 'username', type: 'text',  required: true },
-          { label: 'Phone',    key: 'phone',    type: 'tel',   required: false, placeholder: '+250 700 000 000' },
-        ].map(f => (
-          <div key={f.key}>
-            <label className="block text-sm font-semibold text-masa-dark mb-1.5">{f.label}</label>
-            <input type={f.type} value={profile[f.key]} required={f.required} placeholder={f.placeholder}
-              onChange={e => setProfile(p => ({...p, [f.key]: e.target.value}))}
-              className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors"/>
-          </div>
-        ))}
+        <div>
+          <label className="block text-sm font-semibold text-masa-dark mb-1.5">Username</label>
+          <input type="text" value={profile.username} required
+            onChange={e => setProfile(p => ({ ...p, username: e.target.value }))}
+            className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors"/>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-masa-dark mb-1.5">Phone</label>
+          <input type="tel" value={profile.phone} placeholder="+358 40 000 0000"
+            onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
+            className="w-full border border-masa-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-masa-accent transition-colors"/>
+        </div>
         <div>
           <label className="block text-sm font-semibold text-masa-dark mb-1.5">Email</label>
           <input type="email" value={user?.email || ''} disabled
@@ -306,6 +403,63 @@ function ProfileTab({ user }) {
           {savingProf ? 'Saving…' : 'Save Changes'}
         </button>
       </form>
+
+      {/* saved addresses */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-masa-border pb-2">
+          <h3 className="font-bold text-masa-dark">Saved Addresses</h3>
+          <button onClick={() => { setEditingAddr(null); setShowAddrForm(v => !v); }}
+            className="text-sm text-masa-accent font-medium hover:underline">
+            {showAddrForm ? '✕ Cancel' : '+ Add New'}
+          </button>
+        </div>
+        {addrMsg && (
+          <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">{addrMsg}</div>
+        )}
+        {showAddrForm && !editingAddr && (
+          <AddressForm initial={EMPTY_ADDR} onSave={handleSaveAddr} onCancel={() => setShowAddrForm(false)} saving={savingAddr} />
+        )}
+        {addrLoading ? (
+          <div className="space-y-2">{[0,1].map(i=><div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse"/>)}</div>
+        ) : addresses.length === 0 ? (
+          <p className="text-sm text-masa-gray py-6 text-center border border-dashed border-masa-border rounded-xl">
+            No saved addresses yet. Add one to speed up checkout.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {addresses.map(addr => (
+              <div key={addr.id}>
+                {editingAddr?.id === addr.id ? (
+                  <AddressForm initial={editingAddr} onSave={handleSaveAddr}
+                    onCancel={() => setEditingAddr(null)} saving={savingAddr} />
+                ) : (
+                  <div className={`border rounded-xl p-4 ${addr.is_default ? 'border-masa-accent bg-orange-50' : 'border-masa-border'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-sm space-y-0.5">
+                        <p className="font-semibold text-masa-dark">{addr.full_name}</p>
+                        {addr.phone && <p className="text-masa-gray">{addr.phone}</p>}
+                        <p className="text-masa-gray">{addr.street}, {addr.city}</p>
+                        <p className="text-masa-gray">{[addr.state, addr.country, addr.postal_code].filter(Boolean).join(', ')}</p>
+                        {addr.is_default ? <span className="text-xs font-semibold text-masa-accent">✓ Default</span> : null}
+                      </div>
+                      <div className="flex flex-col gap-1 shrink-0 text-right">
+                        <button onClick={() => { setEditingAddr(addr); setShowAddrForm(false); }}
+                          className="text-xs text-blue-600 hover:underline">Edit</button>
+                        {!addr.is_default && (
+                          <button onClick={() => handleSetDefault(addr.id)}
+                            className="text-xs text-masa-accent hover:underline">Set default</button>
+                        )}
+                        <button onClick={() => handleDeleteAddr(addr.id)}
+                          className="text-xs text-red-500 hover:underline">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* password form */}
       <form onSubmit={handleChangePassword} className="space-y-4">
