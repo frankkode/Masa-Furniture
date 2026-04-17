@@ -14,7 +14,7 @@ jest.mock('../db/database', () => {
   // seed category + product
   db.prepare(`INSERT INTO category (name, slug) VALUES ('Chairs','chair')`).run();
   const catId = db.prepare(`SELECT id FROM category WHERE slug='chair'`).get().id;
-  db.prepare(`INSERT INTO product (category_id, name, slug, price, stock, is_active) VALUES (?, 'Test Chair', 'test-chair', 199.00, 5, 1)`).run(catId);
+  db.prepare(`INSERT INTO product (category_id, name, slug, sku, price, stock, is_active) VALUES (?, 'Test Chair', 'test-chair', 'CHAIR-TEST-001', 199.00, 5, 1)`).run(catId);
   return db;
 });
 
