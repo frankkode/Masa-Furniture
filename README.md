@@ -4,12 +4,12 @@
 
 **Course:** Getting Started in Web Programming (DLBITPEWP01\_E)  
 **Student:** Frank Masabo
+**Tutor:** Andrew Adjah Sai
 
-**Live** [View Live application](https://masa-furniture.onrender.com/)
+**Live** [Live application](https://masa-furniture.onrender.com/)
 
 **IU Internationale Hochschule**
 
-**Figma Prototype:** [View Design](https://www.figma.com/proto/rnY2e00zdBpjpVmTj49K8Y/Masa---Furniture-by-Frank-Masabo--IU-Internationale-Hochschule?node-id=0-1&t=8zKYF7rOjVRu8RQN-1)
 
 ---
 
@@ -23,6 +23,12 @@
 
 ## Live Demo
 [View Live application](https://masa-furniture.onrender.com/)  
+
+## Database Architecture
+
+![Database Architecture](docs/diagrams/Database%20architecture.png)
+
+[View interactive diagram on dbdiagram.io](https://dbdiagram.io/d/69dfc56e0f7c9ef2c006ed90)
 
 | Resource | Link |
 |---|---|
