@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# build output
+client/dist/
+client/build/
+
+# environment variables
+.env
+server/.env
+client/.env
+../.env
+# database
+server/masa.db
+server/masa.db-shm
+server/masa.db-wal
+
+# editor & tool configs (local only)
+.vscode/
+.idea/
+*.swp
+*.swo
+.agents/
+.claude/
+.continue/
+skills-lock.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+*.log
+
+# Uploaded product images (dev only; prod uses Vercel Blob)
+server/uploads/*
+!server/uploads/.gitkeep
