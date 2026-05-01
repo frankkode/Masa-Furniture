@@ -6,7 +6,6 @@
 **Student:** Frank Masabo
 **Tutor:** Andrew Adjah Sai
 
-**Live** [Live application](https://masa-furniture.onrender.com/)
 
 **IU Internationale Hochschule**
 
@@ -32,7 +31,7 @@
 
 | Resource | Link |
 |---|---|
-| Live Application | https://masa-furniture.onrender.com/Masa-Furniture |
+| Live Application | https://masa-furniture.onrender.com|
 | GitHub Repository | https://github.com/frankkode/Masa-Furniture |
 | Demo — Admin | `admin@masa.com` / `Admin@123` |
 | Demo — Client | `client@masa.com` / `Client@123` |

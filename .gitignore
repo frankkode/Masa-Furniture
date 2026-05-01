@@ -39,3 +39,4 @@ yarn-debug.log*
 # Uploaded product images (dev only; prod uses Vercel Blob)
 server/uploads/*
 !server/uploads/.gitkeep
+.fuse_hidden*
