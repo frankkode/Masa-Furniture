@@ -7,15 +7,15 @@
 
 **Live** [View Live application](https://masa-furniture.onrender.com/)
 
-**IU Internationale Hochschule** 
+**IU Internationale Hochschule**
 
-**Figma Prototype:** [View Design](https://www.figma.com/proto/rnY2e00zdBpjpVmTj49K8Y/Masa---Furniture-Landing-Page-Design--Community-?node-id=1-2&t=7cudZnHs5FDL7Eel-1)
+**Figma Prototype:** [View Design](https://www.figma.com/proto/rnY2e00zdBpjpVmTj49K8Y/Masa---Furniture-by-Frank-Masabo--IU-Internationale-Hochschule?node-id=0-1&t=8zKYF7rOjVRu8RQN-1)
 
 ---
 
 ## Figma Design
 
-[![Figma Prototype](https://img.shields.io/badge/Figma-View%20Prototype-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/proto/rnY2e00zdBpjpVmTj49K8Y/Masa---Furniture-Landing-Page-Design--Community-?node-id=1-2&embed-host=share)
+[![Figma Prototype](https://img.shields.io/badge/Figma-View%20Prototype-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/proto/rnY2e00zdBpjpVmTj49K8Y/Masa---Furniture-by-Frank-Masabo--IU-Internationale-Hochschule?node-id=0-1&t=8zKYF7rOjVRu8RQN-1)
 
 > Click the badge above to open the interactive Figma prototype in your browser.
 
