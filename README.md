@@ -96,7 +96,7 @@ The React 18 SPA (Presentation) communicates with the Node.js/Express REST API (
 
 ![ERD](docs/diagrams/fig07-erd.png)
 
-Four tables: `users`, `products`, `orders`, `order_items`. Foreign key integrity enforced with `PRAGMA foreign_keys = ON`. The `order_items` junction table stores a price snapshot at purchase time, making order history immutable.
+Core tables: `user`, `product`, `"order"`, `order_item`. Foreign key integrity enforced with `PRAGMA foreign_keys = ON`. The `order_item` junction table stores a price snapshot at purchase time, making order history immutable.
 
 ### Figure 11 — Security Architecture (Defence-in-Depth)
 
@@ -134,7 +134,7 @@ flowchart LR
     subgraph CI ["  GitHub Actions — CI Pipeline  "]
         direction TB
         INSTALL["📥  npm ci\nClean install"]
-        TEST["🧪  npm test\nJest + Supertest\n107 server · 94 client"]
+        TEST["🧪  npm test\nJest + Supertest\n107 server · 96 client"]
         BUILD["🔨  npm run build\nVite production build"]
     end
 
@@ -151,7 +151,7 @@ flowchart LR
     BUILD -->|"main branch"| LIVE
 ```
 
-Every push to `main` runs: **Install → Test (107 server + 94 client) → Build → Deploy**. Any failure blocks the branch.
+Every push to `main` runs: **Install → Test (107 server + 96 client) → Build → Deploy**. Any failure blocks the branch.
 
 ### Figure 14 — Responsive Breakpoints
 
@@ -173,15 +173,15 @@ Every push to `main` runs: **Install → Test (107 server + 94 client) → Build
 
 | Suite | Tests | Coverage |
 |---|---|---|
-| auth.test.js | 14 | Register, login, JWT issue, 401 on invalid token |
-| products.test.js | 18 | GET with filters, 404 on missing |
-| cart.test.js | 12 | Context ops, localStorage, quantity bounds |
-| orders.test.js | 16 | Price recalc, atomic insert, order history |
-| admin.test.js | 20 | 403 on non-admin, product CRUD, status update |
-| wishlist.test.js | 8 | Add, remove, list per user |
-| shipping.test.js | 7 | Rate calculation, admin settings |
-| email.test.js | 6 | Nodemailer mock: order + contact |
-| middleware.test.js | 6 | verifyToken, verifyAdmin edge cases |
+| auth.test.js | 20 | Register, login, JWT issue, 401 on invalid token |
+| orders.test.js | 18 | Price recalc, atomic insert, order history |
+| reviews.test.js | 13 | Create, list, delete, rating breakdown |
+| admin.test.js | 12 | 403 on non-admin, product CRUD, status update |
+| admin_images.test.js | 10 | Image upload, reorder, delete |
+| notifications.test.js | 11 | Create, mark-read, mark-all-read |
+| contact.test.js | 8 | Nodemailer mock, validation |
+| cart.test.js | 8 | Add, update qty, remove, clear |
+| products.test.js | 7 | GET with filters, 404 on missing |
 | **Total** | **107** | **9 suites — all passing** |
 
 ```bash
@@ -190,20 +190,14 @@ cd server && npm test
 # Tests:      107 passed, 107 total
 ```
 
-### Client — 94 / 96 Passing (2 skipped )
+### Client — 96 / 96 Passing
 
 ```bash
 cd client && npm test
 # Test Files   12 passed (12)
-# Tests        94 passed | 2 skipped (96)
+# Tests        96 passed (96)
 ```
-Note:The 2 skipped tests are in ShippingSettings.test.jsx — I marked them it.skip because they require the full admin DashboardPage DOM to render (clicking through Orders → Settings sub-tab), which times out in the test environment.
 
-They test:
-
-Saving new shipping fee values and showing success message
-Showing error message when save fails
-The underlying feature works fine in the browser — the tests just can't reliably navigate the nested admin tabs in happy-dom.
 ---
 
 ## Security
@@ -212,8 +206,8 @@ The underlying feature works fine in the browser — the tests just can't reliab
 |---|---|
 | Transport | HTTPS / TLS 1.3 in production |
 | Passwords | bcrypt 12 salt rounds — hash only, never plaintext |
-| Authentication | JWT HS256, 7-day expiry, `verifyToken` on all protected routes |
-| Authorisation | `verifyAdmin` on all `/api/admin/*` routes — server-enforced (not just client-side) |
+| Authentication | JWT HS256, 7-day expiry, `requireAuth` on all protected routes |
+| Authorisation | `requireAdmin` on all `/api/admin/*` routes — server-enforced (not just client-side) |
 | Payments | PaymentIntent created server-side; status verified with Stripe API after client confirms |
 | SQL | All queries via better-sqlite3 prepared statements — zero string interpolation |
 | Transactions | `db.transaction()` for atomic order inserts — auto-rollback on any failure |
@@ -332,14 +326,14 @@ cd ../client && npm install
 
 # Run (two terminals)
 cd server && npm run dev        # API → http://localhost:5000
-cd client && npm start          # React → http://localhost:3000
+cd client && npm run dev        # React → http://localhost:5173
 ```
 
 ### Run Tests
 
 ```bash
 cd server && npm test           # 107 tests — Jest + Supertest
-cd client && npm test           # 94 tests — React Testing Library
+cd client && npm test           # 96 tests — React Testing Library
 ```
 
 ### Production
@@ -363,8 +357,7 @@ CLIENT_URL=http://localhost:3000
 
 **`client/.env`**
 ```
-REACT_APP_STRIPE_PK=pk_test_...
-REACT_APP_API_URL=http://localhost:5000
+VITE_STRIPE_PK=pk_test_...
 ```
 
 ---
@@ -412,7 +405,7 @@ Masa-Furniture/
 ├── server/                    # Node.js + Express REST API
 │   ├── src/
 │   │   ├── routes/            # auth, products, orders, admin, wishlist, contact
-│   │   ├── middleware/        # verifyToken.js, verifyAdmin.js
+│   │   ├── middleware/        # auth.js (requireAuth), upload.js
 │   │   ├── db/                # schema.js, seed.js (40 products across 6 categories)
 │   │   └── __tests__/         # Jest + Supertest suites
 │   └── masa.db                # SQLite database
@@ -427,45 +420,48 @@ Masa-Furniture/
 ## Database Schema
 
 ```sql
-CREATE TABLE users (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  name       TEXT NOT NULL,
-  email      TEXT NOT NULL UNIQUE,
-  password   TEXT NOT NULL,           -- bcrypt hash, never plaintext
-  role       TEXT DEFAULT 'client',   -- 'client' | 'admin'
-  created_at DATETIME DEFAULT (datetime('now'))
+-- PRAGMA settings applied at startup
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+
+CREATE TABLE user (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  username     TEXT NOT NULL UNIQUE,
+  email        TEXT NOT NULL UNIQUE,
+  password     TEXT NOT NULL,           -- bcrypt hash, never plaintext
+  is_staff     INTEGER DEFAULT 0,       -- 1 = admin
+  is_superuser INTEGER DEFAULT 0,
+  is_active    INTEGER DEFAULT 1,
+  date_joined  DATETIME DEFAULT (datetime('now')),
+  last_login   DATETIME
 );
 
-CREATE TABLE products (
+CREATE TABLE product (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   name        TEXT NOT NULL,
   description TEXT,
   price       REAL NOT NULL,
-  category    TEXT,                   -- chair|sofa|bed|table|lamp|shelf
-  image_url   TEXT,
+  category_id INTEGER REFERENCES category(id),
   stock       INTEGER DEFAULT 0,
-  material    TEXT,
-  weight      REAL,
   created_at  DATETIME DEFAULT (datetime('now'))
 );
 
-CREATE TABLE orders (
+CREATE TABLE "order" (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id       INTEGER REFERENCES users(id),
-  total_price   REAL NOT NULL,         -- always server-calculated
+  user_id       INTEGER REFERENCES user(id),
+  total_price   REAL NOT NULL,           -- always server-calculated
   shipping_cost REAL DEFAULT 0,
   status        TEXT DEFAULT 'pending',
-  address       TEXT,                  -- JSON snapshot at order time
-  stripe_pi     TEXT,                  -- Stripe PaymentIntent ID
+  stripe_pi     TEXT,                    -- Stripe PaymentIntent ID
   created_at    DATETIME DEFAULT (datetime('now'))
 );
 
-CREATE TABLE order_items (
+CREATE TABLE order_item (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id   INTEGER REFERENCES orders(id),
-  product_id INTEGER REFERENCES products(id),
+  order_id   INTEGER REFERENCES "order"(id),
+  product_id INTEGER REFERENCES product(id),
   quantity   INTEGER NOT NULL,
-  price      REAL NOT NULL             -- price snapshot, immutable after insert
+  price      REAL NOT NULL               -- price snapshot, immutable after insert
 );
 ```
 ---
