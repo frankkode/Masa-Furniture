@@ -89,7 +89,7 @@ describe('Admin Settings tab', () => {
     });
   });
 
-  it.skip('saves new values and shows success message', async () => {
+  it('saves new values and shows success message', async () => {
     api.patch.mockResolvedValueOnce({ data: { ok: true } });
     renderAdminTab();
     await waitFor(() => screen.getByText(/Admin Panel/i));
@@ -103,9 +103,11 @@ describe('Admin Settings tab', () => {
     fireEvent.change(feeInput,    { target: { value: '5.50' } });
     fireEvent.change(threshInput, { target: { value: '75'   } });
 
+    // The Save button is type="submit" inside <form onSubmit={handleSave}>.
+    // fireEvent.click does not trigger onSubmit in jsdom — submit the form directly.
     const saveBtn = screen.getAllByRole('button').find(b => b.textContent.includes('Save'));
     expect(saveBtn).toBeTruthy();
-    fireEvent.click(saveBtn);
+    fireEvent.submit(saveBtn.closest('form'));
 
     await waitFor(() =>
       expect(api.patch).toHaveBeenCalledWith('/admin/shipping-settings', {
@@ -118,7 +120,7 @@ describe('Admin Settings tab', () => {
     );
   });
 
-  it.skip('shows error message when save fails', async () => {
+  it('shows error message when save fails', async () => {
     api.patch.mockRejectedValueOnce(new Error('Network error'));
     renderAdminTab();
     await waitFor(() => screen.getByText(/Admin Panel/i));
@@ -126,9 +128,10 @@ describe('Admin Settings tab', () => {
 
     await waitFor(() => expect(screen.getAllByRole('spinbutton').length).toBeGreaterThanOrEqual(2));
 
+    // Submit the form directly — fireEvent.click on type="submit" does not fire onSubmit in jsdom.
     const saveBtn = screen.getAllByRole('button').find(b => b.textContent.includes('Save'));
     expect(saveBtn).toBeTruthy();
-    fireEvent.click(saveBtn);
+    fireEvent.submit(saveBtn.closest('form'));
 
     await waitFor(() =>
       expect(screen.getByText(/Failed to save settings/i)).toBeInTheDocument()
