@@ -31,11 +31,16 @@
 
 | Resource | Link |
 |---|---|
-| Live Application | https://masa-furniture.onrender.com|
+| Live Application | https://masa-furniture.onrender.com |
 | GitHub Repository | https://github.com/frankkode/Masa-Furniture |
-| Demo — Admin | `admin@masa.com` / `Admin@123` |
-| Demo — Client | `client@masa.com` / `Client@123` |
 | Stripe Test Card | `4242 4242 4242 4242` · any future date · any CVC |
+
+### Demo Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@masa.com` | `Admin@123` |
+| Client | `client@masa.com` | `Client@123` |
 
 ---
 
