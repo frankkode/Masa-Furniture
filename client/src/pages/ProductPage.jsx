@@ -601,7 +601,7 @@ export default function ProductPage() {
                     <div key={r.id} className="relative rounded-2xl overflow-hidden min-h-[200px]">
                       {/* blurred product image as background */}
                       <div className="absolute inset-0">
-                        <img src={mainSrc} alt=""
+                        <img src={mainSrc} alt="" aria-hidden="true"
                           className="w-full h-full object-cover scale-110 blur-sm"
                           onError={e => { e.target.style.display='none'; }}/>
                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/65 to-black/45"/>
