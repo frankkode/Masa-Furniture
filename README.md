@@ -21,7 +21,15 @@
 ---
 
 ## Live Demo
-[View Live application](https://masa-furniture.onrender.com/)  
+[View Live application](https://masa-furniture.onrender.com/)
+
+### Lighthouse Scores
+
+| Performance | Accessibility | Best Practices | SEO |
+|:-----------:|:-------------:|:--------------:|:---:|
+| ![Performance](https://img.shields.io/badge/Performance-98-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white) | ![Accessibility](https://img.shields.io/badge/Accessibility-90-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white) | ![Best Practices](https://img.shields.io/badge/Best%20Practices-100-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white) | ![SEO](https://img.shields.io/badge/SEO-92-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white) |
+
+> Scores measured on the live production build at [masa-furniture.onrender.com](https://masa-furniture.onrender.com) using Chrome Lighthouse (May 2026).
 
 ## Database Architecture
 
