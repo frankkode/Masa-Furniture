@@ -169,7 +169,7 @@ Every push to `main` runs: **Install → Test (107 server + 96 client) → Build
 
 ### Server — 107 / 107 Passing
 
-<img src="docs/screenshots/test-results-server.jpg" alt="Server 107 tests passing" width="680">
+<img src="docs/screenshots/server test.png" alt="Server 107 tests passing" width="680">
 
 | Suite | Tests | Coverage |
 |---|---|---|
@@ -191,6 +191,8 @@ cd server && npm test
 ```
 
 ### Client — 96 / 96 Passing
+
+<img src="docs/screenshots/client test.png" alt="Client 96 tests passing" width="680">
 
 ```bash
 cd client && npm test
