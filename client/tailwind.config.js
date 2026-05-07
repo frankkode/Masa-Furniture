@@ -4,11 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        'masa-dark':   '#1a1a2e',
-        'masa-accent': '#e07b39',
-        'masa-light':  '#f8f7f4',
-        'masa-gray':   '#6b7280',
-        'masa-border': '#e5e7eb',
+        'masa-dark':        '#1a1a2e',
+        'masa-accent':      '#e07b39',
+        'masa-accent-text': '#9e4a10', // darker variant: 5.5:1 contrast on white (WCAG AA)
+        'masa-light':       '#f8f7f4',
+        'masa-gray':        '#6b7280',
+        'masa-border':      '#e5e7eb',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

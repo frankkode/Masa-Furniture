@@ -85,7 +85,7 @@ export default function ContactPage() {
 
       {/* ── hero ── */}
       <section className="bg-masa-light border-b border-masa-border py-16 px-4 text-center">
-        <p className="text-masa-accent text-sm font-semibold tracking-widest uppercase mb-3">Contact</p>
+        <p className="text-masa-accent-text text-sm font-semibold tracking-widest uppercase mb-3">Contact</p>
         <h1 className="text-4xl font-bold text-masa-dark mb-4">We'd love to hear from you</h1>
         <p className="text-masa-gray max-w-md mx-auto leading-relaxed">
           Have a question about an order, need design advice, or just want to say hello?

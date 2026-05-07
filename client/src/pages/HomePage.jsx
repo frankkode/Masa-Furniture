@@ -104,20 +104,20 @@ function ProductSkeleton() {
 /* ── section label ───────────────────────────────────────────── */
 function SectionLabel({ children }) {
   return (
-    <p className="text-masa-accent text-xs font-bold tracking-[0.2em] uppercase mb-3">
+    <p className="text-masa-accent-text text-xs font-bold tracking-[0.2em] uppercase mb-3">
       {children}
     </p>
   );
 }
 
 /* ── "More info" link ────────────────────────────────────────── */
-function MoreInfo({ to = '/shop' }) {
+function MoreInfo({ to = '/shop', label = 'More Info' }) {
   return (
-    <Link to={to}
+    <Link to={to} aria-label={label}
       className="inline-flex items-center gap-2 text-xs font-semibold text-masa-accent hover:gap-3 transition-all mt-3">
       More Info
-      <span className="flex-1 inline-block w-8 h-px bg-masa-accent" />
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <span className="flex-1 inline-block w-8 h-px bg-masa-accent" aria-hidden="true" />
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"/>
       </svg>
     </Link>
@@ -382,7 +382,7 @@ export default function HomePage() {
                 <div key={item.title}>
                   <h3 className="font-bold text-masa-dark text-base mb-2">{item.title}</h3>
                   <p className="text-masa-gray text-sm leading-relaxed">{item.desc}</p>
-                  <MoreInfo to={item.to} />
+                  <MoreInfo to={item.to} label={`Learn more about ${item.title}`} />
                 </div>
               ))}
             </div>
@@ -503,7 +503,7 @@ export default function HomePage() {
               by people who are professionals in their fields with an elegant and luxurious style
               and with premium quality materials
             </p>
-            <MoreInfo to="/about" />
+            <MoreInfo to="/about" label="Learn more about our team" />
           </div>
         </div>
       </section>
@@ -524,7 +524,7 @@ export default function HomePage() {
               Because Masa was very serious about designing furniture for our environment,
               using a very expensive and famous capital but at a relatively low price
             </p>
-            <MoreInfo to="/shop" />
+            <MoreInfo to="/shop" label="Browse our furniture collection" />
           </div>
 
           {/* right: 3-photo collage — 2 stacked left col, 1 tall right col */}
@@ -599,6 +599,7 @@ export default function HomePage() {
               <div className="flex justify-center gap-2 mt-5">
                 {TESTIMONIALS.map((_, i) => (
                   <button key={i} onClick={() => setTestimIdx(i)}
+                    aria-label={`Go to testimonial ${i + 1}`}
                     className={`w-2 h-2 rounded-full transition-colors
                       ${i === testimIdx ? 'bg-masa-accent' : 'bg-gray-300'}`} />
                 ))}
@@ -608,10 +609,11 @@ export default function HomePage() {
             {/* next arrow */}
             <button
               onClick={() => setTestimIdx(i => (i + 1) % TESTIMONIALS.length)}
+              aria-label="Next testimonial"
               className="absolute -right-5 top-1/3 z-10 w-10 h-10 rounded-full bg-white border border-gray-200
                          shadow flex items-center justify-center text-masa-dark hover:shadow-md transition-shadow"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
               </svg>
             </button>

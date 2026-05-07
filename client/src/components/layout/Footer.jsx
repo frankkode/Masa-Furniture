@@ -42,7 +42,7 @@ export default function Footer() {
 
         {/* ② Company */}
         <div>
-          <h3 className="text-sm font-semibold text-masa-accent mb-5">Company</h3>
+          <h3 className="text-sm font-semibold text-masa-accent-text mb-5">Company</h3>
           <ul className="flex flex-col gap-3">
             {companyLinks.map(link => (
               <li key={link.label}>
@@ -57,7 +57,7 @@ export default function Footer() {
 
         {/* ③ Furniture */}
         <div>
-          <h3 className="text-sm font-semibold text-masa-accent mb-5">Furniture</h3>
+          <h3 className="text-sm font-semibold text-masa-accent-text mb-5">Furniture</h3>
           <ul className="flex flex-col gap-3">
             {furnitureLinks.map(link => (
               <li key={link.label}>
@@ -72,7 +72,7 @@ export default function Footer() {
 
         {/* ④ Follow Us */}
         <div>
-          <h3 className="text-sm font-semibold text-masa-accent mb-5">Follow Us</h3>
+          <h3 className="text-sm font-semibold text-masa-accent-text mb-5">Follow Us</h3>
           <ul className="flex flex-col gap-3">
             <li>
               <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
